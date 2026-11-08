@@ -3,6 +3,7 @@ import DiscoverySection from "@/components/home/DiscoverySection";
 import Image from "next/image";
 import FeaturesSection from "@/components/home/FeatureSection";
 import PricingSection from "@/components/home/PricingSection";
+import CtaSection from "@/components/home/CtaSection";
 
 export default function Home() {
   return (
@@ -11,6 +12,7 @@ export default function Home() {
       <DiscoverySection />
       <FeaturesSection />
       <PricingSection />
+      <CtaSection />
     </div>
   );
 }
