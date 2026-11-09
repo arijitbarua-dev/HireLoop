@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertCircle, Briefcase, Loader2, Lock, Mail, ShieldCheck, User } from "lucide-react";
+import { FcGoogle } from "react-icons/fc";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,7 @@ export default function SignupPage() {
     const router = useRouter();
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const [googleLoading, setGoogleLoading] = useState(false);
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -64,12 +66,43 @@ export default function SignupPage() {
                 return;
             }
 
-            // Successfully registered and account created in MongoDB
+            // Successfully registered. better-auth auto-creates a session
+            // on signup — clear it so the user lands signed out on the
+            // sign-in page and must sign in explicitly.
+            await authClient.signOut();
             router.push("/signin");
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : "An unexpected error occurred.";
             setError(message);
             setLoading(false);
+        }
+    };
+
+    // Google signup redirects to Google, so no callback handling needed here.
+    const handleGoogleSignup = async () => {
+        setError(null);
+        setGoogleLoading(true);
+
+        try {
+            const { error: authError } = await authClient.signIn.social({
+                provider: "google",
+                callbackURL: "/",
+            });
+
+            if (authError) {
+                setError(
+                    authError.message ||
+                        "Failed to sign up with Google. Please try again."
+                );
+                setGoogleLoading(false);
+            }
+        } catch (err: unknown) {
+            const message =
+                err instanceof Error
+                    ? err.message
+                    : "An unexpected error occurred.";
+            setError(message);
+            setGoogleLoading(false);
         }
     };
 
@@ -276,7 +309,27 @@ export default function SignupPage() {
                         <div className="h-px flex-1 bg-[#383838]" />
                     </div>
 
-                    <p className="text-center text-[13px] text-[#9B9B9B]">
+                    {/* Google */}
+                    <button
+                        type="button"
+                        onClick={handleGoogleSignup}
+                        disabled={googleLoading}
+                        className="flex h-11 w-full items-center justify-center gap-2.5 rounded-[10px] border border-[#383838] bg-[#161616] text-[14px] font-medium text-white transition-colors hover:border-[#4A4A4A] hover:bg-[#202020] disabled:opacity-60"
+                    >
+                        {googleLoading ? (
+                            <span className="flex items-center gap-2">
+                                <Loader2 className="size-4 animate-spin" />
+                                Redirecting...
+                            </span>
+                        ) : (
+                            <>
+                                <FcGoogle className="size-[18px]" />
+                                Sign up with Google
+                            </>
+                        )}
+                    </button>
+
+                    <p className="mt-6 text-center text-[13px] text-[#9B9B9B]">
                         Already have an account?{" "}
                         <Link
                             href="/signin"
