@@ -4,11 +4,17 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertCircle, Loader2, Lock, Mail, User } from "lucide-react";
+import { AlertCircle, Briefcase, Loader2, Lock, Mail, ShieldCheck, User } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
+
+const ROLES = [
+    { value: "seeker", label: "Seeker", icon: User },
+    { value: "recruiter", label: "Recruiter", icon: Briefcase },
+    { value: "admin", label: "Admin", icon: ShieldCheck },
+] as const;
 
 export default function SignupPage() {
     const router = useRouter();
@@ -24,6 +30,7 @@ export default function SignupPage() {
         const email = String(formData.get("email") ?? "").trim();
         const password = String(formData.get("password") ?? "");
         const confirmPassword = String(formData.get("confirmPassword") ?? "");
+        const role = String(formData.get("role") ?? "seeker");
 
         if (!name || !email || !password) {
             setError("Please fill in all required fields.");
@@ -47,6 +54,7 @@ export default function SignupPage() {
                 name,
                 email,
                 password,
+                role,
                 callbackURL: "/signin",
             });
 
@@ -110,6 +118,36 @@ export default function SignupPage() {
                         onSubmit={handleSubmit}
                         className="flex flex-col gap-5"
                     >
+                        {/* Account type */}
+                        <div className="flex flex-col gap-2">
+                            <span className="text-[13px] font-medium text-[#E5E5E5]">
+                                Account type
+                            </span>
+                            <div className="grid grid-cols-3 gap-2.5">
+                                {ROLES.map((role) => (
+                                    <label
+                                        key={role.value}
+                                        className="relative flex cursor-pointer"
+                                    >
+                                        <input
+                                            type="radio"
+                                            name="role"
+                                            value={role.value}
+                                            defaultChecked={role.value === "seeker"}
+                                            className="peer sr-only"
+                                            required
+                                        />
+                                        <div className="flex w-full flex-col items-center gap-1.5 rounded-[10px] border border-[#383838] bg-[#161616] px-2 py-3 text-center text-[#9B9B9B] transition-colors hover:border-[#4A4A4A] peer-checked:border-[#6251FF] peer-checked:bg-[#6251FF]/10 peer-checked:text-white">
+                                            <role.icon className="size-4" />
+                                            <span className="text-[13px] font-medium">
+                                                {role.label}
+                                            </span>
+                                        </div>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+                        
                         {/* Name */}
                         <div className="flex flex-col gap-2">
                             <label

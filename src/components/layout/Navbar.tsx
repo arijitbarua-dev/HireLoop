@@ -14,12 +14,15 @@ import {
     SheetTitle,
     SheetTrigger,
 } from "@/components/ui/sheet";
+import { authClient } from "@/lib/auth-client";
 
 const navLinks = [
     { label: "Browse Jobs", href: "/jobs" },
     { label: "Company", href: "/company" },
     { label: "Pricing", href: "/pricing" },
 ];
+
+const { data: session } = await authClient.getSession()
 
 function Logo() {
     return (
