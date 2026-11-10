@@ -1,19 +1,63 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, use, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { redirect, useRouter } from "next/navigation";
 import { AlertCircle, Loader2, Lock, Mail } from "lucide-react";
+import { FcGoogle } from "react-icons/fc";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
+import { oauthErrorMessage } from "@/lib/oauth-errors";
 
-export default function SigninPage() {
+// Reading searchParams is uncached runtime data, so the streamed
+// content sits behind a Suspense boundary to keep a prerenderable
+// static shell for the page.
+function AuthFallback() {
+    return (
+        <section className="relative isolate flex flex-1 items-center justify-center overflow-hidden bg-[#050507] px-4 py-14 sm:py-20">
+            <Loader2 className="size-5 animate-spin text-[#6251FF]" />
+        </section>
+    );
+}
+
+export default function SigninPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+    return (
+        <Suspense fallback={<AuthFallback />}>
+            <SigninContent searchParams={searchParams} />
+        </Suspense>
+    );
+}
+
+function SigninContent({
+    searchParams,
+}: {
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
     const router = useRouter();
-    const [error, setError] = useState<string | null>(null);
+    const params = use(searchParams);
+    const oauthError = typeof params.error === "string" ? params.error : null;
+    const [error, setError] = useState<string | null>(
+        oauthError && oauthError !== "signup_disabled"
+            ? oauthErrorMessage(oauthError)
+            : null
+    );
     const [loading, setLoading] = useState(false);
+    const [googleLoading, setGoogleLoading] = useState(false);
+
+    // Google sign-ins come back to this page with an `error` query param
+    // when the flow fails. `signup_disabled` means the Google account has
+    // no Hireloop account yet, so the user is sent to the sign-up page
+    // to pick an account type and complete registration.
+    if (oauthError === "signup_disabled") {
+        redirect("/signup?google=signup");
+    }
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -51,6 +95,37 @@ export default function SigninPage() {
             const message = err instanceof Error ? err.message : "An unexpected error occurred.";
             setError(message);
             setLoading(false);
+        }
+    };
+
+    // Google redirects to the provider, so there is no callback handling
+    // here. Users without an account come back with error=signup_disabled
+    // and are sent to the sign-up page (see the redirect above).
+    const handleGoogleSignin = async () => {
+        setError(null);
+        setGoogleLoading(true);
+
+        try {
+            const { error: authError } = await authClient.signIn.social({
+                provider: "google",
+                callbackURL: "/",
+                errorCallbackURL: "/signin",
+            });
+
+            if (authError) {
+                setError(
+                    authError.message ||
+                        "Failed to start Google sign-in. Please try again."
+                );
+                setGoogleLoading(false);
+            }
+        } catch (err: unknown) {
+            const message =
+                err instanceof Error
+                    ? err.message
+                    : "An unexpected error occurred.";
+            setError(message);
+            setGoogleLoading(false);
         }
     };
 
@@ -196,7 +271,27 @@ export default function SigninPage() {
                         <div className="h-px flex-1 bg-[#383838]" />
                     </div>
 
-                    <p className="text-center text-[13px] text-[#9B9B9B]">
+                    {/* Google */}
+                    <button
+                        type="button"
+                        onClick={handleGoogleSignin}
+                        disabled={googleLoading}
+                        className="flex h-11 w-full items-center justify-center gap-2.5 rounded-[10px] border border-[#383838] bg-[#161616] text-[14px] font-medium text-white transition-colors hover:border-[#4A4A4A] hover:bg-[#202020] disabled:opacity-60"
+                    >
+                        {googleLoading ? (
+                            <span className="flex items-center gap-2">
+                                <Loader2 className="size-4 animate-spin" />
+                                Redirecting...
+                            </span>
+                        ) : (
+                            <>
+                                <FcGoogle className="size-[18px]" />
+                                Sign in with Google
+                            </>
+                        )}
+                    </button>
+
+                    <p className="mt-6 text-center text-[13px] text-[#9B9B9B]">
                         Don&apos;t have an account?{" "}
                         <Link
                             href="/signup"

@@ -1,5 +1,5 @@
 import { betterAuth } from "better-auth";
-import { APIError } from "better-auth/api";
+import { APIError, getOAuthState } from "better-auth/api";
 import { MongoClient } from "mongodb";
 import { mongodbAdapter } from "@better-auth/mongo-adapter";
 
@@ -28,7 +28,20 @@ export const auth = betterAuth({
                 // Only allow known role values, so clients can't
                 // store arbitrary strings in the role field.
                 before: async (user) => {
-                    const role = ((user as { role?: string }).role ??
+                    // On social sign-up the chosen account type can't be
+                    // sent in the request body, so it travels through the
+                    // OAuth state (see "Sign up with Google" on the
+                    // sign-up page). Note: user.role is pre-filled with
+                    // the field's default value ("seeker") before this
+                    // hook runs, so the state's explicit choice must win.
+                    const oauthState = await getOAuthState();
+                    const stateRole =
+                        typeof oauthState?.role === "string"
+                            ? oauthState.role
+                            : undefined;
+
+                    const role = (stateRole ??
+                        (user as { role?: string }).role ??
                         "seeker") as (typeof ROLES)[number];
 
                     if (!ROLES.includes(role)) {
@@ -46,6 +59,10 @@ export const auth = betterAuth({
         google: {
             clientId: process.env.GOOGLE_CLIENT_ID as string,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+            // Google sign-in must not silently create an account. Users
+            // without an account are sent to the sign-up page, which
+            // requests sign-up explicitly via requestSignUp: true.
+            disableImplicitSignUp: true,
         },
     },
     database: mongodbAdapter(db, {

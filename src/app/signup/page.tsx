@@ -1,15 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, use, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertCircle, Briefcase, Loader2, Lock, Mail, ShieldCheck, User } from "lucide-react";
+import { AlertCircle, Briefcase, Info, Loader2, Lock, Mail, ShieldCheck, User } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
+import { oauthErrorMessage } from "@/lib/oauth-errors";
 
 const ROLES = [
     { value: "seeker", label: "Seeker", icon: User },
@@ -17,11 +18,56 @@ const ROLES = [
     { value: "admin", label: "Admin", icon: ShieldCheck },
 ] as const;
 
-export default function SignupPage() {
+type Role = (typeof ROLES)[number]["value"];
+
+// Reading searchParams is uncached runtime data, so the streamed
+// content sits behind a Suspense boundary to keep a prerenderable
+// static shell for the page.
+function AuthFallback() {
+    return (
+        <section className="relative isolate flex flex-1 items-center justify-center overflow-hidden bg-[#050507] px-4 py-14 sm:py-20">
+            <Loader2 className="size-5 animate-spin text-[#6251FF]" />
+        </section>
+    );
+}
+
+export default function SignupPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+    return (
+        <Suspense fallback={<AuthFallback />}>
+            <SignupContent searchParams={searchParams} />
+        </Suspense>
+    );
+}
+
+function SignupContent({
+    searchParams,
+}: {
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
     const router = useRouter();
-    const [error, setError] = useState<string | null>(null);
+    const params = use(searchParams);
+    const fromGoogleSignin = params.google === "signup";
+    const oauthError = typeof params.error === "string" ? params.error : null;
+    const [error, setError] = useState<string | null>(
+        oauthError && oauthError !== "signup_disabled"
+            ? oauthErrorMessage(oauthError)
+            : null
+    );
     const [loading, setLoading] = useState(false);
     const [googleLoading, setGoogleLoading] = useState(false);
+    const [role, setRole] = useState<Role>("seeker");
+
+    // The sign-in page sends brand-new Google users here (and Google
+    // sign-up errors land here) so they can pick an account type and
+    // complete registration.
+    const notice =
+        fromGoogleSignin || oauthError === "signup_disabled"
+            ? "Your Google account doesn't have a Hireloop account yet. Choose an account type and continue with Google to finish signing up."
+            : null;
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -32,7 +78,6 @@ export default function SignupPage() {
         const email = String(formData.get("email") ?? "").trim();
         const password = String(formData.get("password") ?? "");
         const confirmPassword = String(formData.get("confirmPassword") ?? "");
-        const role = String(formData.get("role") ?? "seeker");
 
         if (!name || !email || !password) {
             setError("Please fill in all required fields.");
@@ -78,7 +123,11 @@ export default function SignupPage() {
         }
     };
 
-    // Google signup redirects to Google, so no callback handling needed here.
+    // Google signup redirects to Google, so no callback handling needed
+    // here. requestSignUp is required because implicit sign-up is
+    // disabled for Google sign-ins started elsewhere (e.g. the sign-in
+    // page), and the selected account type rides the OAuth state to the
+    // server, where the user record is created with it.
     const handleGoogleSignup = async () => {
         setError(null);
         setGoogleLoading(true);
@@ -86,7 +135,10 @@ export default function SignupPage() {
         try {
             const { error: authError } = await authClient.signIn.social({
                 provider: "google",
+                requestSignUp: true,
+                additionalData: { role },
                 callbackURL: "/",
+                errorCallbackURL: "/signup",
             });
 
             if (authError) {
@@ -140,6 +192,13 @@ export default function SignupPage() {
 
                 {/* Card */}
                 <div className="mt-8 w-full rounded-[16px] border border-[#2B2B2B] bg-[#1D1D1D]/80 p-6 shadow-[0_20px_60px_rgba(0,0,0,0.5)] backdrop-blur-sm sm:p-8">
+                    {notice && (
+                        <div className="mb-5 flex items-center gap-2 rounded-[10px] border border-[#6251FF]/25 bg-[#6251FF]/10 p-3 text-[13px] text-[#B4A8FF]">
+                            <Info className="size-4 shrink-0" />
+                            <span>{notice}</span>
+                        </div>
+                    )}
+
                     {error && (
                         <div className="mb-5 flex items-center gap-2 rounded-[10px] border border-red-500/20 bg-red-500/10 p-3 text-[13px] text-red-400">
                             <AlertCircle className="size-4 shrink-0" />
@@ -157,23 +216,23 @@ export default function SignupPage() {
                                 Account type
                             </span>
                             <div className="grid grid-cols-3 gap-2.5">
-                                {ROLES.map((role) => (
+                                {ROLES.map((option) => (
                                     <label
-                                        key={role.value}
+                                        key={option.value}
                                         className="relative flex cursor-pointer"
                                     >
                                         <input
                                             type="radio"
                                             name="role"
-                                            value={role.value}
-                                            defaultChecked={role.value === "seeker"}
+                                            value={option.value}
+                                            checked={role === option.value}
+                                            onChange={() => setRole(option.value)}
                                             className="peer sr-only"
-                                            required
                                         />
                                         <div className="flex w-full flex-col items-center gap-1.5 rounded-[10px] border border-[#383838] bg-[#161616] px-2 py-3 text-center text-[#9B9B9B] transition-colors hover:border-[#4A4A4A] peer-checked:border-[#6251FF] peer-checked:bg-[#6251FF]/10 peer-checked:text-white">
-                                            <role.icon className="size-4" />
+                                            <option.icon className="size-4" />
                                             <span className="text-[13px] font-medium">
-                                                {role.label}
+                                                {option.label}
                                             </span>
                                         </div>
                                     </label>
