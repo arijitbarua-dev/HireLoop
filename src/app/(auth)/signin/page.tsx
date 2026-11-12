@@ -51,6 +51,13 @@ function SigninContent({
     const [loading, setLoading] = useState(false);
     const [googleLoading, setGoogleLoading] = useState(false);
 
+    // Each role lands on its own dashboard after a successful sign-in.
+    const dashboardPathByRole: Record<string, string> = {
+        seeker: "/dashboard/seeker",
+        recruiter: "/dashboard/recruiter",
+        admin: "/dashboard/admin",
+    };
+
     // Google sign-ins come back to this page with an `error` query param
     // when the flow fails. `signup_disabled` means the Google account has
     // no Hireloop account yet, so the user is sent to the sign-up page
@@ -76,10 +83,13 @@ function SigninContent({
         setLoading(true);
 
         try {
+            // Note: no `callbackURL` here on purpose. Passing one makes
+            // better-auth's client fetch plugin follow the returned
+            // `redirect` and hard-navigate to that URL (overriding the
+            // role-based dashboard redirect below).
             const { data, error: authError } = await authClient.signIn.email({
                 email,
                 password,
-                callbackURL: "/",
                 rememberMe: remember,
             });
 
@@ -89,8 +99,11 @@ function SigninContent({
                 return;
             }
 
-            // Successfully signed in
-            router.push("/");
+            // Successfully signed in — send the user to the dashboard
+            // that matches their role (recruiters go to the recruiter
+            // dashboard), falling back to the home page for unknown roles.
+            const role = data?.user?.role;
+            router.push((role && dashboardPathByRole[role]) || "/");
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : "An unexpected error occurred.";
             setError(message);

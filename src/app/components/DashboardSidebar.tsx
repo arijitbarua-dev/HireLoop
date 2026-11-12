@@ -3,8 +3,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useSession } from "@/lib/auth-client";
+import { usePathname, useRouter } from "next/navigation";
+import { authClient, useSession } from "@/lib/auth-client";
 
 import {
     Sidebar,
@@ -30,6 +30,7 @@ import {
     CreditCard,
     FileText,
     LayoutDashboard,
+    LogOut,
     Settings,
     Users,
     Wallet,
@@ -76,6 +77,7 @@ const menuItemsByRole: Record<Role, MenuItem[]> = {
 export function DashboardSidebar() {
     const { data: session, isPending } = useSession();
     const pathname = usePathname();
+    const router = useRouter();
 
     const user = session?.user;
 
@@ -86,6 +88,12 @@ export function DashboardSidebar() {
     const userName = user?.name || "User";
     const userImage = user?.image || "";
     const userRole = role.charAt(0).toUpperCase() + role.slice(1);
+
+    const handleSignOut = async () => {
+        await authClient.signOut();
+        router.replace("/signin");
+        router.refresh();
+    };
 
     return (
         <Sidebar
@@ -156,7 +164,22 @@ export function DashboardSidebar() {
                 </SidebarGroup>
             </SidebarContent>
 
-            <SidebarFooter />
+            <SidebarFooter className="px-2 pb-4">
+                <SidebarGroup className="p-0">
+                    <SidebarMenu>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton
+                                onClick={handleSignOut}
+                                tooltip="Sign Out"
+                                className="h-9 text-xs text-[#a1a1aa] hover:bg-[#222226] hover:text-white"
+                            >
+                                <LogOut className="size-4 shrink-0" />
+                                <span>Sign Out</span>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </SidebarMenu>
+                </SidebarGroup>
+            </SidebarFooter>
         </Sidebar>
     );
 }
