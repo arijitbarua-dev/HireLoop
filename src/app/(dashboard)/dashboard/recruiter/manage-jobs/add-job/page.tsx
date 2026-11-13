@@ -1,6 +1,7 @@
 'use client'
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ import {
     Globe,
     MapPin,
 } from "lucide-react";
+import { createJob } from "@/lib/actions/jobs";
 
 const JOB_TYPES = [
     "Full-time",
@@ -49,6 +51,11 @@ const FREQUENCIES = [
 ] as const;
 
 const AddJobPage = () => {
+    const router = useRouter();
+
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [formError, setFormError] = useState<string | null>(null);
+
     const [jobTitle, setJobTitle] = useState("");
     const [companyName, setCompanyName] = useState("");
     const [jobCategory, setJobCategory] = useState<string | null>(
@@ -64,11 +71,13 @@ const AddJobPage = () => {
     const [responsibilities, setResponsibilities] = useState("");
     const [qualifications, setQualifications] = useState("");
 
-    const handlePublish = (event: React.FormEvent<HTMLFormElement>) => {
+    const handlePublish = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
-        // TODO: connect to API
-        console.log({
+        setFormError(null);
+        setIsSubmitting(true);
+
+        const result = await createJob({
             jobTitle,
             companyName,
             jobCategory,
@@ -82,6 +91,17 @@ const AddJobPage = () => {
             responsibilities,
             qualifications,
         });
+
+        setIsSubmitting(false);
+
+        if (!result.success) {
+            setFormError(result.error || "Failed to publish job. Please try again.");
+            return;
+        }
+
+        // Job stored in MongoDB — back to listings
+        router.push("/dashboard/recruiter/manage-jobs");
+        router.refresh();
     };
 
     return (
@@ -513,13 +533,20 @@ const AddJobPage = () => {
                 </section>
 
                 <section>
+                    {formError && (
+                        <p className="mb-3 rounded-lg border border-[#872e2e] bg-[#421b1b]/60 px-3 py-2 text-xs text-[#f87171]">
+                            {formError}
+                        </p>
+                    )}
+
                     <Button
                         type="submit"
                         size="lg"
+                        disabled={isSubmitting}
                         className="w-full shrink-0 bg-[#6d5ae0] text-white hover:bg-[#5b48d6] sm:w-auto"
                         data-icon="inline-end"
                     >
-                        Publish Job
+                        {isSubmitting ? "Publishing..." : "Publish Job"}
                         <ArrowRight data-icon="inline-end" className="size-4" />
                     </Button>
                 </section>
