@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { toast } from "@/components/ui/toast";
+
 import {
     Select,
     SelectContent,
@@ -95,12 +97,24 @@ const AddJobPage = () => {
         setIsSubmitting(false);
 
         if (!result.success) {
-            setFormError(result.error || "Failed to publish job. Please try again.");
+            const message = result.error || "Failed to publish job. Please try again.";
+
+            setFormError(message);
+            toast.add({
+                type: "error",
+                title: "Failed to publish job",
+                description: message,
+            });
             return;
         }
 
         // Job stored in MongoDB — back to listings
         router.push("/dashboard/recruiter/manage-jobs");
+        toast.add({
+            type: "success",
+            title: "Job created!",
+            description: `${jobTitle} has been published successfully.`,
+        });
         router.refresh();
     };
 

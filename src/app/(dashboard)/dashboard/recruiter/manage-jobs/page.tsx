@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
+import { connection } from "next/server";
 
 import { getJob, type JobDoc } from "@/lib/api/jobs";
 import ManageJobsTable, { type JobRow } from "@/app/components/ManageJobsTable";
@@ -88,6 +89,9 @@ const toRow = (doc: JobDoc): JobRow => ({
 
 // Streams the job listings so the page shell renders instantly
 const JobsSection = async () => {
+    // Live data + relative "posted" times must be computed per request
+    await connection();
+
     const docs = await getJob();
     const jobs = docs.map(toRow);
 

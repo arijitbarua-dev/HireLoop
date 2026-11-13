@@ -22,6 +22,8 @@ import { deleteJob } from "@/lib/actions/jobs";
 
 import type { JobRow } from "./ManageJobsTable";
 
+import { toast } from "@/components/ui/toast";
+
 export function DeleteJobDialog({ job }: { job: JobRow }) {
     const router = useRouter();
 
@@ -38,12 +40,24 @@ export function DeleteJobDialog({ job }: { job: JobRow }) {
         setIsDeleting(false);
 
         if (!result.success) {
-            setError(result.error || "Failed to delete the job. Please try again.");
+            const message = result.error || "Failed to delete the job. Please try again.";
+
+            setError(message);
+            toast.add({
+                type: "error",
+                title: "Failed to delete job",
+                description: message,
+            });
             return;
         }
 
         // Job removed from MongoDB — refetch the server-rendered list
         setOpen(false);
+        toast.add({
+            type: "success",
+            title: "Job deleted!",
+            description: `${job.title} has been deleted successfully.`,
+        });
         router.refresh();
     };
 
