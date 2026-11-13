@@ -30,11 +30,12 @@ import {
     Palette,
     Pencil,
     ShieldCheck,
-    Trash2,
     Users,
 } from "lucide-react";
 
 import type { LucideIcon } from "lucide-react";
+
+import { DeleteJobDialog } from "@/app/components/DeleteJobDialog";
 
 export type JobStatus = "Active" | "Expired";
 
@@ -254,14 +255,7 @@ const ManageJobsTable = ({ jobs }: { jobs: JobRow[] }) => {
                                                 Update
                                             </Button>
 
-                                            <Button
-                                                variant="ghost"
-                                                size="icon-sm"
-                                                aria-label={`Delete ${job.title}`}
-                                                className="text-[#85858f] hover:bg-[#421b1b]/60 hover:text-[#f87171]"
-                                            >
-                                                <Trash2 className="size-3.5" />
-                                            </Button>
+                                            <DeleteJobDialog job={job} />
 
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger

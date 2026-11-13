@@ -35,3 +35,24 @@ export const createJob = async (data: JobPayload) => {
         return { success: false, error: 'Could not reach the server' };
     }
 };
+
+
+export const deleteJob = async (jobId: string) => {
+    try {
+        const res = await fetch(`${BASE_URL}/jobs/${jobId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+        });
+
+        if (!res.ok) {
+            return { success: false, error: `Server responded with ${res.status}` };
+        }
+
+        return { success: true, data: await res.json() };
+    } catch (error) {
+        console.error('deleteJob failed:', error);
+        return { success: false, error: 'Could not reach the server' };
+    }
+};
