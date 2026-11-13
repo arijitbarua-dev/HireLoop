@@ -149,17 +149,11 @@ const ManageJobsPage = () => {
             {/* Breadcrumb */}
             <nav className="flex items-center gap-1.5 text-[11px]">
                 <Link
-                    href="/dashboard/recruiter"
+                    href="/dashboard/recruiter/manage-jobs"
                     className="text-[#85858f] transition hover:text-[#d4d4d8]"
                 >
                     Manage Jobs
                 </Link>
-
-                <ChevronRight className="size-3 text-[#52525b]" />
-
-                <span className="text-[#d4d4d8]">
-                    Job Listings &amp; Postings
-                </span>
             </nav>
 
             {/* Page Header */}
@@ -328,6 +322,13 @@ const ManageJobsPage = () => {
                                     <TableCell className="px-4 py-3">
                                         <div className="flex items-center justify-end gap-1.5">
                                             <Button
+                                                render={
+                                                    <Link
+                                                        href="/dashboard/recruiter/manage-jobs/updated-job-post"
+                                                        aria-label={`Update ${job.title}`}
+                                                    />
+                                                }
+                                                nativeButton={false}
                                                 size="sm"
                                                 className="h-7 gap-1 rounded-lg bg-[#6d5ae0] px-2.5 text-[10px] text-white hover:bg-[#5b48d6]"
                                             >

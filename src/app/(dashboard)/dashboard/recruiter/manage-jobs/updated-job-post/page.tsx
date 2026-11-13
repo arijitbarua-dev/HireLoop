@@ -1,0 +1,530 @@
+'use client'
+
+import Link from "next/link";
+import { useState } from "react";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+
+import {
+    ArrowRight,
+    Calendar,
+    ChevronRight,
+    Globe,
+    MapPin,
+} from "lucide-react";
+
+const JOB_TYPES = [
+    "Full-time",
+    "Part-time",
+    "Contract",
+    "Internship",
+] as const;
+
+const JOB_CATEGORIES = [
+    { value: "engineering-tech", label: "Engineering & Tech" },
+    { value: "design-creative", label: "Design & Creative" },
+    { value: "marketing-sales", label: "Marketing & Sales" },
+    { value: "finance-legal", label: "Finance & Legal" },
+    { value: "operations-hr", label: "Operations & HR" },
+    { value: "customer-support", label: "Customer Support" },
+] as const;
+
+const FREQUENCIES = [
+    { value: "per-hour", label: "per hour" },
+    { value: "per-day", label: "per day" },
+    { value: "per-week", label: "per week" },
+    { value: "per-month", label: "per month" },
+    { value: "per-year", label: "per year" },
+] as const;
+
+// TODO: fetch the real job by id and use its values as initial state
+const UpdateJobPostPage = () => {
+    const [jobTitle, setJobTitle] = useState("Frontend Developer");
+    const [companyName, setCompanyName] = useState("HirePulse Network");
+    const [jobCategory, setJobCategory] = useState<string | null>(
+        "engineering-tech"
+    );
+    const [jobType, setJobType] = useState<string>("Full-time");
+    const [remoteAllowed, setRemoteAllowed] = useState(true);
+    const [jobLocation, setJobLocation] = useState("New York, USA");
+    const [deadline, setDeadline] = useState("2025-09-30");
+    const [minSalary, setMinSalary] = useState("25");
+    const [maxSalary, setMaxSalary] = useState("40");
+    const [frequency, setFrequency] = useState<string | null>("per-hour");
+    const [responsibilities, setResponsibilities] = useState(
+        "Showcase your commitment to delivering exceptional user interfaces and digital experiences. You will collaborate directly with systems designers and backend engineers to craft responsive, micro-interaction rich products."
+    );
+    const [qualifications, setQualifications] = useState(
+        "• 3+ years of experience with React, TypeScript, and component-driven architectures\n• Solid understanding of DOM performance and component-driven designs\n• Experience partnering closely with product teams and UI/UX designers"
+    );
+
+    const handleUpdate = (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+
+        // TODO: connect to API
+        console.log({
+            jobTitle,
+            companyName,
+            jobCategory,
+            jobType,
+            remoteAllowed,
+            jobLocation,
+            deadline,
+            minSalary,
+            maxSalary,
+            frequency,
+            responsibilities,
+            qualifications,
+        });
+    };
+
+    return (
+        <div className="min-w-0 space-y-5 pb-10">
+
+            {/* Breadcrumb */}
+            <nav className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                <Link
+                    href="/dashboard/recruiter/manage-jobs"
+                    className="text-[#85858f] transition hover:text-[#d4d4d8]"
+                >
+                    Manage Jobs
+                </Link>
+
+                <ChevronRight className="size-3 text-[#52525b]" />
+
+                <span className="text-[#d4d4d8]">
+                    Update Job Post
+                </span>
+            </nav>
+
+            {/* Page Header */}
+            <div className="min-w-0">
+                <h1 className="text-xl font-semibold tracking-tight text-[#e4e4e7] sm:text-2xl">
+                    Update Job Post
+                </h1>
+
+                <p className="mt-1 text-xs text-[#85858f] sm:text-[13px]">
+                    Modify position specifications, compensation range, and
+                    candidate requirements for this listing.
+                </p>
+            </div>
+
+            {/* Form */}
+            <form
+                onSubmit={handleUpdate}
+                className="space-y-5"
+            >
+
+                {/* 1. Basic Information */}
+                <section className="rounded-xl border border-[#232327] bg-[#131316] p-4 sm:p-5">
+                    <div className="flex items-center gap-2">
+                        <span className="size-1.5 rounded-full bg-[#6d5ae0]" />
+
+                        <h2 className="text-sm font-medium text-[#e4e4e7]">
+                            1. Basic Information
+                        </h2>
+                    </div>
+
+                    <div className="mt-4 space-y-4">
+
+                        {/* Job Title */}
+                        <div className="space-y-1.5">
+                            <Label
+                                htmlFor="job-title"
+                                className="text-xs text-[#a1a1aa]"
+                            >
+                                Job Title{" "}
+                                <span className="text-[#71717a]">*</span>
+                            </Label>
+
+                            <Input
+                                id="job-title"
+                                value={jobTitle}
+                                onChange={(e) => setJobTitle(e.target.value)}
+                                placeholder="Frontend Developer"
+                                required
+                                className="h-9 rounded-lg border-[#2a2a2e] bg-[#0f0f11] text-xs text-[#e4e4e7] placeholder:text-[#6b6b74] focus-visible:border-[#6d5ae0] focus-visible:ring-[#6d5ae0]/30"
+                            />
+                        </div>
+
+                        {/* Company Name + Job Category */}
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <div className="space-y-1.5">
+                                <Label
+                                    htmlFor="company-name"
+                                    className="text-xs text-[#a1a1aa]"
+                                >
+                                    Company Name{" "}
+                                    <span className="text-[#71717a]">*</span>
+                                </Label>
+
+                                <Input
+                                    id="company-name"
+                                    value={companyName}
+                                    onChange={(e) =>
+                                        setCompanyName(e.target.value)
+                                    }
+                                    placeholder="HirePulse Network"
+                                    required
+                                    className="h-9 rounded-lg border-[#2a2a2e] bg-[#0f0f11] text-xs text-[#e4e4e7] placeholder:text-[#6b6b74] focus-visible:border-[#6d5ae0] focus-visible:ring-[#6d5ae0]/30"
+                                />
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <Label
+                                    htmlFor="job-category"
+                                    className="text-xs text-[#a1a1aa]"
+                                >
+                                    Job Category{" "}
+                                    <span className="text-[#71717a]">*</span>
+                                </Label>
+
+                                <Select
+                                    items={[...JOB_CATEGORIES]}
+                                    value={jobCategory}
+                                    onValueChange={(value) =>
+                                        setJobCategory(value)
+                                    }
+                                >
+                                    <SelectTrigger
+                                        id="job-category"
+                                        className="h-9 w-full rounded-lg border-[#2a2a2e] bg-[#0f0f11] text-xs text-[#e4e4e7] data-placeholder:text-[#6b6b74] focus-visible:border-[#6d5ae0] focus-visible:ring-[#6d5ae0]/30"
+                                    >
+                                        <SelectValue placeholder="Select category" />
+                                    </SelectTrigger>
+
+                                    <SelectContent className="border border-[#2a2a2e] bg-[#1a1a1f] text-xs text-[#e4e4e7] ring-[#2a2a2e]">
+                                        {JOB_CATEGORIES.map((category) => (
+                                            <SelectItem
+                                                key={category.value}
+                                                value={category.value}
+                                                className="text-xs focus:bg-[#2a2a30] focus:text-white"
+                                            >
+                                                {category.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+
+                        {/* Job Type */}
+                        <div className="space-y-1.5">
+                            <Label className="text-xs text-[#a1a1aa]">
+                                Job Type{" "}
+                                <span className="text-[#71717a]">*</span>
+                            </Label>
+
+                            <div
+                                role="radiogroup"
+                                aria-label="Job Type"
+                                className="grid grid-cols-2 gap-3 sm:grid-cols-4"
+                            >
+                                {JOB_TYPES.map((type) => {
+                                    const isActive = jobType === type;
+
+                                    return (
+                                        <Button
+                                            key={type}
+                                            type="button"
+                                            role="radio"
+                                            aria-checked={isActive}
+                                            onClick={() => setJobType(type)}
+                                            className={`h-9 rounded-lg text-xs font-medium transition-colors ${
+                                                isActive
+                                                    ? "border border-[#6d5ae0] bg-[#6d5ae0]/10 text-white hover:bg-[#6d5ae0]/20"
+                                                    : "border border-[#2a2a2e] bg-[#0f0f11] text-[#a1a1aa] hover:border-[#3f3f46] hover:text-[#e4e4e7]"
+                                            }`}
+                                        >
+                                            {type}
+                                        </Button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                {/* 2. Location, Compensation & Timeline */}
+                <section className="rounded-xl border border-[#232327] bg-[#131316] p-4 sm:p-5">
+                    <div className="flex items-center gap-2">
+                        <span className="size-1.5 rounded-full bg-[#6d5ae0]" />
+
+                        <h2 className="text-sm font-medium text-[#e4e4e7]">
+                            2. Location, Compensation &amp; Timeline
+                        </h2>
+                    </div>
+
+                    <div className="mt-4 space-y-4">
+
+                        {/* Remote Work Toggle */}
+                        <div className="flex flex-col gap-3 rounded-lg border border-[#2a2a2e] bg-[#0f0f11] p-3.5 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="flex min-w-0 items-start gap-3">
+                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#2a2a2e] bg-[#1a1a1f]">
+                                    <Globe className="size-4 text-[#d4d4d8]" />
+                                </div>
+
+                                <div className="min-w-0">
+                                    <p className="text-xs font-medium text-[#e4e4e7]">
+                                        Remote Work Allowed (Remote)
+                                    </p>
+
+                                    <p className="mt-0.5 text-[11px] text-[#85858f]">
+                                        Enables applications for
+                                        distributed/remote positions
+                                    </p>
+                                </div>
+                            </div>
+
+                            <Switch
+                                checked={remoteAllowed}
+                                onCheckedChange={setRemoteAllowed}
+                                className="self-start data-checked:bg-white data-unchecked:bg-[#3f3f46] sm:self-center [&_[data-slot=switch-thumb]]:bg-[#e4e4e7]"
+                            />
+                        </div>
+
+                        {/* Job Location + Application Deadline */}
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <div className="space-y-1.5">
+                                <div className="flex items-center justify-between">
+                                    <Label
+                                        htmlFor="job-location"
+                                        className="text-xs text-[#a1a1aa]"
+                                    >
+                                        Job Location{" "}
+                                        <span className="font-normal text-[#71717a]">
+                                            (location)
+                                        </span>
+                                    </Label>
+
+                                    <span className="text-[9px] text-[#71717a]">
+                                        Required
+                                    </span>
+                                </div>
+
+                                <div className="relative">
+                                    <MapPin className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-[#6b6b74]" />
+
+                                    <Input
+                                        id="job-location"
+                                        value={jobLocation}
+                                        onChange={(e) =>
+                                            setJobLocation(e.target.value)
+                                        }
+                                        placeholder="New York, USA"
+                                        required
+                                        className="h-9 rounded-lg border-[#2a2a2e] bg-[#0f0f11] pr-2.5 pl-8 text-xs text-[#e4e4e7] placeholder:text-[#6b6b74] focus-visible:border-[#6d5ae0] focus-visible:ring-[#6d5ae0]/30"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <Label
+                                    htmlFor="deadline"
+                                    className="text-xs text-[#a1a1aa]"
+                                >
+                                    Application Deadline{" "}
+                                    <span className="font-normal text-[#71717a]">
+                                        (deadline)
+                                    </span>
+                                </Label>
+
+                                <div className="relative">
+                                    <Calendar className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-[#6b6b74]" />
+
+                                    <Input
+                                        id="deadline"
+                                        type="date"
+                                        value={deadline}
+                                        onChange={(e) =>
+                                            setDeadline(e.target.value)
+                                        }
+                                        className="h-9 rounded-lg border-[#2a2a2e] bg-[#0f0f11] pr-2.5 pl-8 text-xs text-[#e4e4e7] [color-scheme:dark] focus-visible:border-[#6d5ae0] focus-visible:ring-[#6d5ae0]/30 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Salary Range + Frequency */}
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                            <div className="space-y-1.5">
+                                <Label
+                                    htmlFor="min-salary"
+                                    className="text-xs text-[#a1a1aa]"
+                                >
+                                    Min Salary / Rate
+                                </Label>
+
+                                <div className="relative">
+                                    <span className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-xs text-[#6b6b74]">
+                                        €
+                                    </span>
+
+                                    <Input
+                                        id="min-salary"
+                                        type="number"
+                                        min={0}
+                                        value={minSalary}
+                                        onChange={(e) =>
+                                            setMinSalary(e.target.value)
+                                        }
+                                        placeholder="25"
+                                        className="h-9 rounded-lg border-[#2a2a2e] bg-[#0f0f11] pr-2.5 pl-7 text-xs text-[#e4e4e7] placeholder:text-[#6b6b74] focus-visible:border-[#6d5ae0] focus-visible:ring-[#6d5ae0]/30"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <Label
+                                    htmlFor="max-salary"
+                                    className="text-xs text-[#a1a1aa]"
+                                >
+                                    Max Salary / Rate
+                                </Label>
+
+                                <div className="relative">
+                                    <span className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-xs text-[#6b6b74]">
+                                        €
+                                    </span>
+
+                                    <Input
+                                        id="max-salary"
+                                        type="number"
+                                        min={0}
+                                        value={maxSalary}
+                                        onChange={(e) =>
+                                            setMaxSalary(e.target.value)
+                                        }
+                                        placeholder="40"
+                                        className="h-9 rounded-lg border-[#2a2a2e] bg-[#0f0f11] pr-2.5 pl-7 text-xs text-[#e4e4e7] placeholder:text-[#6b6b74] focus-visible:border-[#6d5ae0] focus-visible:ring-[#6d5ae0]/30"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <Label
+                                    htmlFor="frequency"
+                                    className="text-xs text-[#a1a1aa]"
+                                >
+                                    Frequency
+                                </Label>
+
+                                <Select
+                                    items={[...FREQUENCIES]}
+                                    value={frequency}
+                                    onValueChange={(value) =>
+                                        setFrequency(value)
+                                    }
+                                >
+                                    <SelectTrigger
+                                        id="frequency"
+                                        className="h-9 w-full rounded-lg border-[#2a2a2e] bg-[#0f0f11] text-xs text-[#e4e4e7] data-placeholder:text-[#6b6b74] focus-visible:border-[#6d5ae0] focus-visible:ring-[#6d5ae0]/30"
+                                    >
+                                        <SelectValue placeholder="Select frequency" />
+                                    </SelectTrigger>
+
+                                    <SelectContent className="border border-[#2a2a2e] bg-[#1a1a1f] text-xs text-[#e4e4e7] ring-[#2a2a2e]">
+                                        {FREQUENCIES.map((item) => (
+                                            <SelectItem
+                                                key={item.value}
+                                                value={item.value}
+                                                className="text-xs focus:bg-[#2a2a30] focus:text-white"
+                                            >
+                                                {item.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                {/* 3. Responsibilities & Requirements */}
+                <section className="rounded-xl border border-[#232327] bg-[#131316] p-4 sm:p-5">
+                    <div className="flex items-center gap-2">
+                        <span className="size-1.5 rounded-full bg-[#6d5ae0]" />
+
+                        <h2 className="text-sm font-medium text-[#e4e4e7]">
+                            3. Responsibilities &amp; Requirements
+                        </h2>
+                    </div>
+
+                    <div className="mt-4 space-y-4">
+
+                        {/* Key Responsibilities */}
+                        <div className="space-y-1.5">
+                            <Label
+                                htmlFor="responsibilities"
+                                className="text-xs text-[#a1a1aa]"
+                            >
+                                Key Responsibilities{" "}
+                                <span className="text-[#71717a]">*</span>
+                            </Label>
+
+                            <Textarea
+                                id="responsibilities"
+                                rows={4}
+                                value={responsibilities}
+                                onChange={(e) =>
+                                    setResponsibilities(e.target.value)
+                                }
+                                placeholder="Showcase your commitment to delivering exceptional user interfaces and digital experiences..."
+                                required
+                                className="rounded-lg border-[#2a2a2e] bg-[#0f0f11] text-xs text-[#e4e4e7] placeholder:text-[#6b6b74] focus-visible:border-[#6d5ae0] focus-visible:ring-[#6d5ae0]/30"
+                            />
+                        </div>
+
+                        {/* Qualifications & Requirements */}
+                        <div className="space-y-1.5">
+                            <Label
+                                htmlFor="qualifications"
+                                className="text-xs text-[#a1a1aa]"
+                            >
+                                Qualifications &amp; Requirements{" "}
+                                <span className="text-[#71717a]">*</span>
+                            </Label>
+
+                            <Textarea
+                                id="qualifications"
+                                rows={4}
+                                value={qualifications}
+                                onChange={(e) =>
+                                    setQualifications(e.target.value)
+                                }
+                                placeholder={"• 3+ years of experience with React, TypeScript, and modern state architectures\n• Solid understanding of DOM performance and component-driven designs\n• Experience partnering closely with product teams and UI/UX designers"}
+                                required
+                                className="rounded-lg border-[#2a2a2e] bg-[#0f0f11] text-xs text-[#e4e4e7] placeholder:text-[#6b6b74] focus-visible:border-[#6d5ae0] focus-visible:ring-[#6d5ae0]/30"
+                            />
+                        </div>
+                    </div>
+                </section>
+
+                {/* Submit */}
+                <Button
+                    type="submit"
+                    size="lg"
+                    className="w-full bg-[#6d5ae0] text-white hover:bg-[#5b48d6] sm:w-auto"
+                    data-icon="inline-end"
+                >
+                    Update Job
+                    <ArrowRight data-icon="inline-end" className="size-4" />
+                </Button>
+
+            </form>
+        </div>
+    );
+};
+
+export default UpdateJobPostPage;
