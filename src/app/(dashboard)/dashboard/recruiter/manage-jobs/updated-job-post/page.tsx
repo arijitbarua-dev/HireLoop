@@ -288,9 +288,21 @@ const UpdateJobPostPage = () => {
                             </div>
 
                             <Switch
+                                id="remoteAllowed"
                                 checked={remoteAllowed}
                                 onCheckedChange={setRemoteAllowed}
-                                className="self-start data-checked:bg-white data-unchecked:bg-[#3f3f46] sm:self-center [&_[data-slot=switch-thumb]]:bg-[#e4e4e7]"
+                                aria-label="Allow remote work"
+                                className="
+                                    shrink-0
+                                    border border-[#45454d]
+                                    bg-[#303036]
+                                    data-checked:border-[#6252ff]
+                                    data-checked:bg-[#6252ff]
+                                    data-unchecked:border-[#45454d]
+                                    data-unchecked:bg-[#303036]
+                                    [&_[data-slot=switch-thumb]]:bg-white
+                                    [&_[data-slot=switch-thumb]]:shadow-md
+                                "
                             />
                         </div>
 
