@@ -36,3 +36,34 @@ export const getJob = async (): Promise<JobDoc[]> => {
         return [];
     }
 };
+
+export const updateJob = async (
+    id: string,
+    updatedJob: Partial<JobDoc>
+) => {
+    const response = await fetch(`${BASE_URL}/jobs/${id}`, {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updatedJob),
+    });
+
+    if (!response.ok) {
+        throw new Error("Failed to update job");
+    }
+
+    return response.json();
+};
+
+export const getJobById = async (id: string): Promise<JobDoc> => {
+    const response = await fetch(`${BASE_URL}/jobs/${id}`, {
+        cache: "no-store",
+    });
+
+    if (!response.ok) {
+        throw new Error("Failed to fetch job");
+    }
+
+    return response.json();
+};

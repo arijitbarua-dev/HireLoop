@@ -216,11 +216,10 @@ const ManageJobsTable = ({ jobs }: { jobs: JobRow[] }) => {
                                             className={`gap-1 rounded-full px-2 py-0.5 text-[9px] font-medium ${statusStyles[job.status]}`}
                                         >
                                             <span
-                                                className={`size-1.5 rounded-full ${
-                                                    job.status === "Active"
+                                                className={`size-1.5 rounded-full ${job.status === "Active"
                                                         ? "bg-[#4ade80]"
                                                         : "bg-[#71717a]"
-                                                }`}
+                                                    }`}
                                             />
                                             {job.status}
                                         </Badge>
@@ -243,7 +242,7 @@ const ManageJobsTable = ({ jobs }: { jobs: JobRow[] }) => {
                                             <Button
                                                 render={
                                                     <Link
-                                                        href="/dashboard/recruiter/manage-jobs/updated-job-post"
+                                                        href={`/dashboard/recruiter/manage-jobs/updated-job-post?id=${job.id}`}
                                                         aria-label={`Update ${job.title}`}
                                                     />
                                                 }
