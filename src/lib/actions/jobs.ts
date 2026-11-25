@@ -15,6 +15,26 @@ export type JobPayload = {
     qualifications: string;
 };
 
+export const getJobs = async (query: string) => {
+    try {
+        const res = await fetch(`${BASE_URL}/jobs?${query}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+        });
+
+        if (!res.ok) {
+            return { success: false, error: `Server responded with ${res.status}` };
+        }
+
+        return { success: true, data: await res.json() };
+    } catch (error) {
+        console.error('getJobs failed:', error);
+        return { success: false, error: 'Could not reach the server' };
+    }
+}
+
 export const createJob = async (data: JobPayload) => {
     try {
         const res = await fetch(`${BASE_URL}/jobs`, {
