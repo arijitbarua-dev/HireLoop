@@ -22,6 +22,15 @@ import type { JobDoc } from "@/lib/api/jobs";
 
 const JOB_TYPES = ["Full-time", "Part-time", "Contract", "Internship"];
 
+const JOB_CATEGORIES = [
+    { value: "engineering-tech", label: "Engineering & Tech" },
+    { value: "design-creative", label: "Design & Creative" },
+    { value: "marketing-sales", label: "Marketing & Sales" },
+    { value: "finance-legal", label: "Finance & Legal" },
+    { value: "operations-hr", label: "Operations & HR" },
+    { value: "customer-support", label: "Customer Support" },
+];
+
 const SORT_OPTIONS = [
     { value: "", label: "Most Recent" },
     { value: "oldest", label: "Oldest First" },
@@ -64,6 +73,53 @@ const formatCount = (count: number) => {
     }
     return String(count);
 };
+
+// One checkbox row in a filter section (single select within its group)
+function FilterOption({
+    label,
+    count,
+    selected,
+    onClick,
+}: {
+    label: string;
+    count: number;
+    selected: boolean;
+    onClick: () => void;
+}) {
+    return (
+        <button
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            onClick={onClick}
+            className="group flex w-full items-center gap-[7px] py-1 text-left"
+        >
+            <span
+                className={`flex size-[14px] shrink-0 items-center justify-center rounded-[4px] border transition-colors ${
+                    selected
+                        ? "border-white bg-white"
+                        : "border-[#242429] bg-[#1a1a1f] group-hover:border-[#3a3a41]"
+                }`}
+            >
+                {selected && (
+                    <Check
+                        className="size-2.5 text-[#010103]"
+                        strokeWidth={3}
+                        aria-hidden
+                    />
+                )}
+            </span>
+
+            <span className="text-[12px] leading-none text-[#9797a2] transition-colors group-hover:text-[#c9c9d1]">
+                {label}
+            </span>
+
+            <span className="ml-auto text-[11px] leading-none text-[#63636c]">
+                {formatCount(count)}
+            </span>
+        </button>
+    );
+}
 
 function JobCard({ job }: { job: JobDoc }) {
     const [saved, setSaved] = useState(false);
@@ -143,9 +199,13 @@ function JobCard({ job }: { job: JobDoc }) {
 export default function BrowseJobsView({
     jobs,
     typeCounts,
+    categoryCounts,
+    remoteCount,
 }: {
     jobs: JobDoc[];
     typeCounts: Record<string, number>;
+    categoryCounts: Record<string, number>;
+    remoteCount: number;
 }) {
     const router = useRouter();
     const pathname = usePathname();
@@ -153,6 +213,8 @@ export default function BrowseJobsView({
 
     const search = searchParams.get("search") ?? "";
     const activeType = searchParams.get("jobType") ?? "";
+    const activeCategory = searchParams.get("category") ?? "";
+    const remoteOnly = searchParams.get("remoteAllowed") === "true";
     const sort = searchParams.get("sort") ?? "";
 
     const [searchInput, setSearchInput] = useState(search);
@@ -166,7 +228,7 @@ export default function BrowseJobsView({
     // Start over at page 1 whenever the query changes
     useEffect(() => {
         setPage(1);
-    }, [search, activeType, sort]);
+    }, [search, activeType, activeCategory, remoteOnly, sort]);
 
     // URL params are the single source of truth for search/filter/sort
     const navigate = (updates: Record<string, string | null>) => {
@@ -253,48 +315,68 @@ export default function BrowseJobsView({
                         aria-label="Job Type"
                         className="mt-[13px] flex flex-col"
                     >
-                        {JOB_TYPES.map((type) => {
-                            const selected = activeType === type;
+                        {JOB_TYPES.map((type) => (
+                            <FilterOption
+                                key={type}
+                                label={type}
+                                count={typeCounts[type] ?? 0}
+                                selected={activeType === type}
+                                onClick={() =>
+                                    navigate({
+                                        jobType:
+                                            activeType === type ? null : type,
+                                    })
+                                }
+                            />
+                        ))}
+                    </div>
 
-                            return (
-                                <button
-                                    key={type}
-                                    type="button"
-                                    role="radio"
-                                    aria-checked={selected}
-                                    onClick={() =>
-                                        navigate({
-                                            jobType: selected ? null : type,
-                                        })
-                                    }
-                                    className="group flex w-full items-center gap-[7px] py-1 text-left"
-                                >
-                                    <span
-                                        className={`flex size-[14px] shrink-0 items-center justify-center rounded-[4px] border transition-colors ${
-                                            selected
-                                                ? "border-white bg-white"
-                                                : "border-[#242429] bg-[#1a1a1f] group-hover:border-[#3a3a41]"
-                                        }`}
-                                    >
-                                        {selected && (
-                                            <Check
-                                                className="size-2.5 text-[#010103]"
-                                                strokeWidth={3}
-                                                aria-hidden
-                                            />
-                                        )}
-                                    </span>
+                    <h3 className="mt-[22px] text-[13px] font-medium leading-none text-[#ededef]">
+                        Job Category
+                    </h3>
 
-                                    <span className="text-[12px] leading-none text-[#9797a2] transition-colors group-hover:text-[#c9c9d1]">
-                                        {type}
-                                    </span>
+                    <div
+                        role="radiogroup"
+                        aria-label="Job Category"
+                        className="mt-[13px] flex flex-col"
+                    >
+                        {JOB_CATEGORIES.map((category) => (
+                            <FilterOption
+                                key={category.value}
+                                label={category.label}
+                                count={categoryCounts[category.value] ?? 0}
+                                selected={activeCategory === category.value}
+                                onClick={() =>
+                                    navigate({
+                                        category:
+                                            activeCategory === category.value
+                                                ? null
+                                                : category.value,
+                                    })
+                                }
+                            />
+                        ))}
+                    </div>
 
-                                    <span className="ml-auto text-[11px] leading-none text-[#63636c]">
-                                        {formatCount(typeCounts[type] ?? 0)}
-                                    </span>
-                                </button>
-                            );
-                        })}
+                    <h3 className="mt-[22px] text-[13px] font-medium leading-none text-[#ededef]">
+                        Work Arrangement
+                    </h3>
+
+                    <div
+                        role="radiogroup"
+                        aria-label="Work Arrangement"
+                        className="mt-[13px] flex flex-col"
+                    >
+                        <FilterOption
+                            label="Remote Only"
+                            count={remoteCount}
+                            selected={remoteOnly}
+                            onClick={() =>
+                                navigate({
+                                    remoteAllowed: remoteOnly ? null : "true",
+                                })
+                            }
+                        />
                     </div>
                 </aside>
 

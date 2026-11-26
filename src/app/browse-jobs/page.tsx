@@ -21,14 +21,30 @@ async function BrowseJobsContent({ searchParams }: { searchParams: SearchParams 
     const allList: JobDoc[] =
         allJobs.success && Array.isArray(allJobs.data) ? allJobs.data : [];
 
-    // How many jobs exist for each type (shown next to the filter options)
+    // How many jobs exist for each type/category/arrangement (shown next to
+    // the filter options, computed over the unfiltered set)
     const typeCounts: Record<string, number> = {};
+    const categoryCounts: Record<string, number> = {};
+    let remoteCount = 0;
+
     for (const doc of allList) {
         const type = doc.jobType || "Other";
         typeCounts[type] = (typeCounts[type] ?? 0) + 1;
+
+        const category = doc.jobCategory || "Other";
+        categoryCounts[category] = (categoryCounts[category] ?? 0) + 1;
+
+        if (doc.remoteAllowed) remoteCount += 1;
     }
 
-    return <BrowseJobsView jobs={jobList} typeCounts={typeCounts} />;
+    return (
+        <BrowseJobsView
+            jobs={jobList}
+            typeCounts={typeCounts}
+            categoryCounts={categoryCounts}
+            remoteCount={remoteCount}
+        />
+    );
 }
 
 function BrowseJobsFallback() {
@@ -37,7 +53,7 @@ function BrowseJobsFallback() {
             <div className="h-[70px] animate-pulse rounded-[8px] border border-[#1e1e22] bg-[#141418]" />
 
             <div className="mt-[15px] flex flex-col gap-[19px] lg:flex-row">
-                <div className="h-[157px] shrink-0 animate-pulse rounded-[8px] border border-[#1e1e22] bg-[#141418] lg:w-[189px]" />
+                <div className="h-[430px] shrink-0 animate-pulse rounded-[8px] border border-[#1e1e22] bg-[#141418] lg:w-[189px]" />
 
                 <div className="min-w-0 flex-1 space-y-2.5">
                     <div className="h-6 w-56 animate-pulse rounded bg-[#141418]" />
