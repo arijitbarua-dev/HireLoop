@@ -58,6 +58,27 @@ export const createJob = async (data: JobPayload) => {
 };
 
 
+export const getJobById = async (jobId: string) => {
+    try {
+        const res = await fetch(`${BASE_URL}/jobs/${jobId}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            cache: 'no-store',
+        });
+
+        if (!res.ok) {
+            return { success: false, error: `Server responded with ${res.status}` };
+        }
+
+        return { success: true, data: await res.json() };
+    } catch (error) {
+        console.error('getJobById failed:', error);
+        return { success: false, error: 'Could not reach the server' };
+    }
+};
+
 export const deleteJob = async (jobId: string) => {
     try {
         const res = await fetch(`${BASE_URL}/jobs/${jobId}`, {

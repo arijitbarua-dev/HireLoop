@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
     Bookmark,
@@ -130,7 +131,14 @@ function JobCard({ job }: { job: JobDoc }) {
     const easyApply = !hotJob && job.status !== "Expired";
 
     return (
-        <article className="flex gap-[14px] rounded-[8px] border border-[#1b1b1e] bg-[#141418] p-4">
+        <article className="relative flex gap-[14px] rounded-[8px] border border-[#1b1b1e] bg-[#141418] p-4">
+            {/* Stretched link: clicking anywhere on the card opens the details page */}
+            <Link
+                href={`/browse-jobs/${job._id}`}
+                className="absolute inset-0 rounded-[8px]"
+                aria-label={`View ${job.jobTitle} details`}
+            />
+
             <div className="flex size-10 shrink-0 items-center justify-center rounded-[8px] bg-[#222228]">
                 <Icon className="size-5 text-[#7e8889]" aria-hidden />
             </div>
@@ -152,7 +160,7 @@ function JobCard({ job }: { job: JobDoc }) {
                         aria-label={saved ? "Remove saved job" : "Save job"}
                         aria-pressed={saved}
                         onClick={() => setSaved((value) => !value)}
-                        className={`mt-0.5 shrink-0 transition-colors ${
+                        className={`relative z-10 mt-0.5 shrink-0 transition-colors ${
                             saved
                                 ? "text-[#fcba45]"
                                 : "text-[#7f8183] hover:text-[#c9c9d1]"
