@@ -1,151 +1,132 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
     Bell,
-    Bot,
+    Briefcase,
     ChevronLeft,
     ChevronRight,
-    Cloud,
     Code2,
-    Compass,
-    Database,
     Download,
     Mail,
+    Megaphone,
+    Palette,
     Search,
     type LucideIcon,
 } from "lucide-react";
 
 import { useSession } from "@/lib/auth-client";
+import {
+    getSeekerApplications,
+    type SeekerApplication,
+    type SeekerStats,
+} from "@/lib/actions/jobs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-type ApplicationStatus =
-    | "Applied"
-    | "Review"
-    | "Shortlisted"
-    | "Rejected"
-    | "Offered";
-
-type ApplicationItem = {
-    id: string;
-    jobTitle: string;
-    jobMeta: string;
-    company: string;
-    appliedAt: string;
-    status: ApplicationStatus;
-    archived?: boolean;
-    icon: LucideIcon;
-    iconBoxClass: string;
-    iconClass: string;
+const DEFAULT_STATS: SeekerStats = {
+    savedJobs: 0,
+    totalApplied: 0,
+    shortlisted: 0,
+    interviews: 0,
+    offers: 0,
+    successRate: 0,
 };
 
-const APPLICATIONS: ApplicationItem[] = [
-    {
-        id: "1",
-        jobTitle: "Senior Frontend Engineer",
-        jobMeta: "Full-time • Remote",
-        company: "Stark Industries",
-        appliedAt: "2 hours ago",
-        status: "Applied",
-        icon: Code2,
-        iconBoxClass: "bg-[#d4d4d8]",
-        iconClass: "text-[#141418]",
-    },
-    {
-        id: "2",
-        jobTitle: "Product Designer",
-        jobMeta: "Contract • Hybrid",
-        company: "Cyberdyne Systems",
-        appliedAt: "1 day ago",
-        status: "Review",
-        icon: Compass,
-        iconBoxClass: "bg-[#222228]",
-        iconClass: "text-[#d4d4d8]",
-    },
-    {
-        id: "3",
-        jobTitle: "Lead Data Scientist",
-        jobMeta: "Full-time • On-site",
-        company: "Wayne Enterprises",
-        appliedAt: "4 days ago",
-        status: "Shortlisted",
-        icon: Database,
-        iconBoxClass: "bg-[#222228]",
-        iconClass: "text-[#d4d4d8]",
-    },
-    {
-        id: "4",
-        jobTitle: "Cloud Architect",
-        jobMeta: "Full-time • Remote",
-        company: "Oscorp Tech",
-        appliedAt: "1 week ago",
-        status: "Rejected",
-        icon: Cloud,
-        iconBoxClass: "bg-[#7f1d1d]",
-        iconClass: "text-[#fca5a5]",
-    },
-    {
-        id: "5",
-        jobTitle: "AI Research Engineer",
-        jobMeta: "Full-time • Hybrid",
-        company: "Hooli Corp",
-        appliedAt: "2 weeks ago",
-        status: "Offered",
-        icon: Bot,
-        iconBoxClass: "bg-[#222228]",
-        iconClass: "text-[#d4d4d8]",
-    },
-    {
-        id: "6",
-        jobTitle: "Backend Platform Engineer",
-        jobMeta: "Full-time • Remote",
-        company: "Acme Cloud",
-        appliedAt: "1 month ago",
-        status: "Rejected",
-        archived: true,
-        icon: Code2,
-        iconBoxClass: "bg-[#222228]",
-        iconClass: "text-[#d4d4d8]",
-    },
-];
+const PAGE_SIZE = 5;
 
-const STATUS_STYLES: Record<ApplicationStatus, string> = {
+const iconByCategory: Record<string, LucideIcon> = {
+    "engineering-tech": Code2,
+    "design-creative": Palette,
+    "marketing-sales": Megaphone,
+};
+
+const STATUS_STYLES: Record<string, string> = {
     Applied: "border-[#2c2c34] bg-[#1f1f25] text-[#9797a2]",
+    Pending: "border-[#2c2c34] bg-[#1f1f25] text-[#9797a2]",
     Review: "border-[#664611] bg-[#2a1f0d] text-[#f59e0b]",
+    "Under Review": "border-[#664611] bg-[#2a1f0d] text-[#f59e0b]",
     Shortlisted: "border-[#1e3a5f] bg-[#132238] text-[#60a5fa]",
+    Interview: "border-[#5141a1] bg-[#292052]/50 text-[#a99aff]",
+    Interviewing: "border-[#5141a1] bg-[#292052]/50 text-[#a99aff]",
     Rejected: "border-[#5c1d1d] bg-[#2a1212] text-[#f87171]",
     Offered: "border-[#194a2e] bg-[#10291b] text-[#22c55e]",
 };
 
-const STATS = [
-    { label: "Total Applied", value: "24", valueClass: "text-[#ededef]" },
-    { label: "Shortlisted", value: "8", valueClass: "text-[#ededef]" },
-    { label: "Interviews", value: "3", valueClass: "text-[#f59e0b]" },
-    { label: "Success Rate", value: "12%", valueClass: "text-[#22c55e]" },
-];
+function formatRelativeTime(isoDate: string): string {
+    const time = new Date(isoDate).getTime();
+    if (Number.isNaN(time)) return "Recently";
+
+    const diffSeconds = Math.max(0, Math.floor((Date.now() - time) / 1000));
+    if (diffSeconds < 60) return "Just now";
+    const diffMinutes = Math.floor(diffSeconds / 60);
+    if (diffMinutes < 60) return `${diffMinutes}m ago`;
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) return `${diffHours} ${diffHours === 1 ? "hour" : "hours"} ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) return `${diffDays} ${diffDays === 1 ? "day" : "days"} ago`;
+    const diffWeeks = Math.floor(diffDays / 7);
+    return `${diffWeeks} ${diffWeeks === 1 ? "week" : "weeks"} ago`;
+}
 
 export const ApplicationPage = () => {
-    const { data: session } = useSession();
+    const { data: session, isPending: isSessionPending } = useSession();
     const [searchQuery, setSearchQuery] = useState("");
     const [tab, setTab] = useState<"active" | "archived">("active");
     const [currentPage, setCurrentPage] = useState(1);
 
+    const [applications, setApplications] = useState<SeekerApplication[]>([]);
+    const [stats, setStats] = useState<SeekerStats>(DEFAULT_STATS);
+    const [fetched, setFetched] = useState(false);
+
     const userName = session?.user?.name || "Seeker";
     const userImage = session?.user?.image || "";
+    const userId = session?.user?.id;
+    const userEmail = session?.user?.email;
 
-    const filtered = APPLICATIONS.filter((item) => {
-        const matchesTab = tab === "archived" ? Boolean(item.archived) : !item.archived;
+    const loading = isSessionPending || ((Boolean(userId) || Boolean(userEmail)) && !fetched);
+
+    useEffect(() => {
+        if (isSessionPending || (!userId && !userEmail)) return;
+
+        let cancelled = false;
+        getSeekerApplications(userId, userEmail).then((res) => {
+            if (cancelled) return;
+            if (res.success && res.data) {
+                setApplications(res.data.applications);
+                setStats(res.data.stats);
+            }
+            setFetched(true);
+        });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [isSessionPending, userId, userEmail]);
+
+    const filtered = applications.filter((item) => {
+        const isArchived = Boolean(item.archived) || item.status === "Rejected";
+        const matchesTab = tab === "archived" ? isArchived : !isArchived;
         const q = searchQuery.trim().toLowerCase();
         const matchesSearch =
             !q ||
             item.jobTitle.toLowerCase().includes(q) ||
-            item.company.toLowerCase().includes(q) ||
+            item.companyName.toLowerCase().includes(q) ||
             item.status.toLowerCase().includes(q);
         return matchesTab && matchesSearch;
     });
 
-    const totalDisplay = tab === "active" && !searchQuery.trim() ? 24 : filtered.length;
+    const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+    const safePage = Math.min(currentPage, pageCount);
+    const startIdx = (safePage - 1) * PAGE_SIZE;
+    const visibleApps = filtered.slice(startIdx, startIdx + PAGE_SIZE);
+
+    const statCards = [
+        { label: "Total Applied", value: String(stats.totalApplied), valueClass: "text-[#ededef]" },
+        { label: "Shortlisted", value: String(stats.shortlisted), valueClass: "text-[#ededef]" },
+        { label: "Interviews", value: String(stats.interviews), valueClass: "text-[#f59e0b]" },
+        { label: "Success Rate", value: `${stats.successRate}%`, valueClass: "text-[#22c55e]" },
+    ];
 
     return (
         <div className="space-y-6 pb-10">
@@ -259,7 +240,7 @@ export const ApplicationPage = () => {
 
             {/* 4 Stat Cards */}
             <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                {STATS.map((stat) => (
+                {statCards.map((stat) => (
                     <div
                         key={stat.label}
                         className="rounded-xl border border-[#1f1f24] bg-[#141418] p-5"
@@ -270,7 +251,7 @@ export const ApplicationPage = () => {
                         <p
                             className={`mt-2.5 text-[28px] font-semibold leading-none tracking-tight ${stat.valueClass}`}
                         >
-                            {stat.value}
+                            {loading ? "—" : stat.value}
                         </p>
                     </div>
                 ))}
@@ -293,7 +274,16 @@ export const ApplicationPage = () => {
                         </thead>
 
                         <tbody className="divide-y divide-[#1f1f24]">
-                            {filtered.length === 0 ? (
+                            {loading ? (
+                                <tr>
+                                    <td
+                                        colSpan={5}
+                                        className="px-5 py-10 text-center text-[13px] text-[#6e6e78]"
+                                    >
+                                        Loading applications...
+                                    </td>
+                                </tr>
+                            ) : visibleApps.length === 0 ? (
                                 <tr>
                                     <td
                                         colSpan={5}
@@ -303,20 +293,24 @@ export const ApplicationPage = () => {
                                     </td>
                                 </tr>
                             ) : (
-                                filtered.map((app) => {
-                                    const Icon = app.icon;
+                                visibleApps.map((app) => {
+                                    const Icon =
+                                        iconByCategory[app.jobCategory ?? ""] ?? Briefcase;
+                                    const displayStatus =
+                                        app.status === "Pending" ? "Applied" : app.status;
+                                    const statusClass =
+                                        STATUS_STYLES[app.status] ?? STATUS_STYLES.Applied;
+
                                     return (
                                         <tr
-                                            key={app.id}
+                                            key={app._id}
                                             className="transition-colors hover:bg-[#18181d]"
                                         >
                                             <td className="px-5 py-3.5">
                                                 <div className="flex items-center gap-3.5">
-                                                    <div
-                                                        className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${app.iconBoxClass}`}
-                                                    >
+                                                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#222228]">
                                                         <Icon
-                                                            className={`size-4 ${app.iconClass}`}
+                                                            className="size-4 text-[#d4d4d8]"
                                                             aria-hidden
                                                         />
                                                     </div>
@@ -325,31 +319,34 @@ export const ApplicationPage = () => {
                                                             {app.jobTitle}
                                                         </p>
                                                         <p className="mt-0.5 text-[11px] text-[#6e6e78]">
-                                                            {app.jobMeta}
+                                                            {app.jobType} •{" "}
+                                                            {app.remoteAllowed
+                                                                ? "Remote"
+                                                                : app.jobLocation}
                                                         </p>
                                                     </div>
                                                 </div>
                                             </td>
 
                                             <td className="px-5 py-3.5 text-[13px] text-[#c9c9d1]">
-                                                {app.company}
+                                                {app.companyName}
                                             </td>
 
                                             <td className="px-5 py-3.5 text-[12px] text-[#8e8e98]">
-                                                {app.appliedAt}
+                                                {formatRelativeTime(app.appliedAt)}
                                             </td>
 
                                             <td className="px-5 py-3.5">
                                                 <span
-                                                    className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${STATUS_STYLES[app.status]}`}
+                                                    className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${statusClass}`}
                                                 >
-                                                    {app.status}
+                                                    {displayStatus}
                                                 </span>
                                             </td>
 
                                             <td className="px-5 py-3.5 text-right">
                                                 <Link
-                                                    href="/browse-jobs"
+                                                    href={`/browse-jobs/${app.jobId}`}
                                                     className="text-[12px] font-medium text-[#c9c9d1] transition-colors hover:text-white"
                                                 >
                                                     Details
@@ -366,8 +363,11 @@ export const ApplicationPage = () => {
                 {/* Pagination Footer */}
                 <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#1f1f24] px-5 py-3.5">
                     <p className="text-[12px] text-[#6e6e78]">
-                        Showing {filtered.length === 0 ? 0 : 1}-{filtered.length} of{" "}
-                        {totalDisplay} applications
+                        Showing{" "}
+                        {filtered.length === 0
+                            ? 0
+                            : `${startIdx + 1}-${startIdx + visibleApps.length}`}{" "}
+                        of {filtered.length} applications
                     </p>
 
                     <nav aria-label="Pagination" className="flex items-center gap-1.5">
@@ -375,33 +375,37 @@ export const ApplicationPage = () => {
                             type="button"
                             aria-label="Previous page"
                             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                            disabled={currentPage <= 1}
+                            disabled={safePage <= 1}
                             className="flex size-7 items-center justify-center rounded-md border border-[#242429] bg-[#1a1a1f] text-[#8e8e98] transition-colors hover:text-white disabled:opacity-40"
                         >
                             <ChevronLeft className="size-3.5" aria-hidden />
                         </button>
 
-                        {[1, 2, 3].map((page) => (
-                            <button
-                                key={page}
-                                type="button"
-                                aria-current={currentPage === page ? "page" : undefined}
-                                onClick={() => setCurrentPage(page)}
-                                className={`flex size-7 items-center justify-center rounded-md text-[12px] font-medium transition-colors ${
-                                    currentPage === page
-                                        ? "bg-white font-semibold text-[#09090b]"
-                                        : "border border-[#242429] bg-[#1a1a1f] text-[#8e8e98] hover:text-white"
-                                }`}
-                            >
-                                {page}
-                            </button>
-                        ))}
+                        {Array.from({ length: pageCount }, (_, i) => i + 1).map(
+                            (page) => (
+                                <button
+                                    key={page}
+                                    type="button"
+                                    aria-current={safePage === page ? "page" : undefined}
+                                    onClick={() => setCurrentPage(page)}
+                                    className={`flex size-7 items-center justify-center rounded-md text-[12px] font-medium transition-colors ${
+                                        safePage === page
+                                            ? "bg-white font-semibold text-[#09090b]"
+                                            : "border border-[#242429] bg-[#1a1a1f] text-[#8e8e98] hover:text-white"
+                                    }`}
+                                >
+                                    {page}
+                                </button>
+                            )
+                        )}
 
                         <button
                             type="button"
                             aria-label="Next page"
-                            onClick={() => setCurrentPage((p) => Math.min(3, p + 1))}
-                            disabled={currentPage >= 3}
+                            onClick={() =>
+                                setCurrentPage((p) => Math.min(pageCount, p + 1))
+                            }
+                            disabled={safePage >= pageCount}
                             className="flex size-7 items-center justify-center rounded-md border border-[#242429] bg-[#1a1a1f] text-[#8e8e98] transition-colors hover:text-white disabled:opacity-40"
                         >
                             <ChevronRight className="size-3.5" aria-hidden />

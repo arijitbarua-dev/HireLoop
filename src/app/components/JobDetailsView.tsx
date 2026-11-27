@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 
 import { useSession } from "@/lib/auth-client";
-import { applyToJob, checkJobApplication } from "@/lib/actions/applications";
+import { applyToJob, checkJobApplication } from "@/lib/actions/jobs";
 import type { JobDoc } from "@/lib/api/jobs";
 
 const iconByCategory: Record<string, LucideIcon> = {

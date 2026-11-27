@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -17,103 +17,40 @@ import {
 } from "lucide-react";
 
 import { useSession } from "@/lib/auth-client";
+import {
+    getSeekerApplications,
+    type SeekerActivity,
+    type SeekerStats,
+} from "@/lib/actions/jobs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-const STATS = [
-    {
-        title: "Saved Jobs",
-        value: "12",
-        icon: Bookmark,
-        iconColor: "text-[#d4d4d8]",
-    },
-    {
-        title: "Applications Submitted",
-        value: "24",
-        icon: Send,
-        iconColor: "text-[#d4d4d8]",
-    },
-    {
-        title: "Interviews Scheduled",
-        value: "3",
-        icon: Calendar,
-        iconColor: "text-[#f59e0b]",
-    },
-    {
-        title: "Offers Received",
-        value: "1",
-        icon: Award,
-        iconColor: "text-[#22c55e]",
-    },
-];
-
-type ActivityItem = {
-    id: string;
-    type: "status" | "alert" | "message";
-    time: string;
-    group: number;
-    prefix?: string;
-    highlight?: string;
-    company?: string;
-    statusText?: string;
-    role?: string;
-    sender?: string;
+const DEFAULT_STATS: SeekerStats = {
+    savedJobs: 0,
+    totalApplied: 0,
+    shortlisted: 0,
+    interviews: 0,
+    offers: 0,
+    successRate: 0,
 };
 
-const ACTIVITIES: ActivityItem[] = [
-    {
-        id: "1",
-        type: "status",
-        prefix: "Application for",
-        role: "Senior Product Designer",
-        company: "TechFlow",
-        statusText: "'Under Review'",
-        time: "2 hours ago",
-        group: 1,
-    },
-    {
-        id: "2",
-        type: "alert",
-        role: "Lead Frontend Engineer",
-        company: "FinGrid",
-        time: "5 hours ago",
-        group: 1,
-    },
-    {
-        id: "3",
-        type: "message",
-        sender: "Sarah Jenkins (Hiring Manager at CloudOps)",
-        time: "1 day ago",
-        group: 1,
-    },
-    {
-        id: "4",
-        type: "status",
-        prefix: "Application for",
-        role: "Senior Product Designer",
-        company: "TechFlow",
-        statusText: "'Under Review'",
-        time: "2 hours ago",
-        group: 2,
-    },
-    {
-        id: "5",
-        type: "alert",
-        role: "Lead Frontend Engineer",
-        company: "FinGrid",
-        time: "5 hours ago",
-        group: 2,
-    },
-    {
-        id: "6",
-        type: "message",
-        sender: "Sarah Jenkins (Hiring Manager at CloudOps)",
-        time: "1 day ago",
-        group: 2,
-    },
-];
+function formatRelativeTime(isoDate: string): string {
+    const time = new Date(isoDate).getTime();
+    if (Number.isNaN(time)) return "Recently";
 
-function ActivityRow({ item }: { item: ActivityItem }) {
-    return (
+    const diffSeconds = Math.max(0, Math.floor((Date.now() - time) / 1000));
+    if (diffSeconds < 60) return "Just now";
+    const diffMinutes = Math.floor(diffSeconds / 60);
+    if (diffMinutes < 60) return `${diffMinutes}m ago`;
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) return `${diffHours} ${diffHours === 1 ? "hour" : "hours"} ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) return `${diffDays} ${diffDays === 1 ? "day" : "days"} ago`;
+    const diffWeeks = Math.floor(diffDays / 7);
+    return `${diffWeeks} ${diffWeeks === 1 ? "week" : "weeks"} ago`;
+}
+
+function ActivityRow({ item }: { item: SeekerActivity }) {
+    const rowContent = (
         <div className="flex items-center justify-between gap-4 rounded-xl border border-[#1f1f24] bg-[#141418] px-4 py-3.5 transition-colors hover:border-[#2a2a31]">
             <div className="flex min-w-0 items-center gap-3.5">
                 {item.type === "status" && (
@@ -137,12 +74,12 @@ function ActivityRow({ item }: { item: ActivityItem }) {
                 <p className="truncate text-[13px] text-[#9797a2]">
                     {item.type === "status" && (
                         <>
-                            {item.prefix}{" "}
+                            Application for{" "}
                             <span className="font-medium text-[#ededef]">{item.role}</span>{" "}
                             at <span className="text-[#ededef]">{item.company}</span>{" "}
                             updated to{" "}
                             <span className="font-medium text-[#f59e0b]">
-                                {item.statusText}
+                                &apos;{item.statusText}&apos;
                             </span>
                         </>
                     )}
@@ -166,18 +103,51 @@ function ActivityRow({ item }: { item: ActivityItem }) {
                 </p>
             </div>
 
-            <span className="shrink-0 text-[12px] text-[#6e6e78]">{item.time}</span>
+            <span className="shrink-0 text-[12px] text-[#6e6e78]">
+                {formatRelativeTime(item.timestamp)}
+            </span>
         </div>
     );
+
+    if (item.jobId) {
+        return <Link href={`/browse-jobs/${item.jobId}`}>{rowContent}</Link>;
+    }
+
+    return rowContent;
 }
 
 const SeekerDashboardPage = () => {
     const router = useRouter();
-    const { data: session } = useSession();
+    const { data: session, isPending: isSessionPending } = useSession();
     const [searchQuery, setSearchQuery] = useState("");
+    const [stats, setStats] = useState<SeekerStats>(DEFAULT_STATS);
+    const [activities, setActivities] = useState<SeekerActivity[]>([]);
+    const [fetched, setFetched] = useState(false);
 
     const userName = session?.user?.name || "Seeker";
     const userImage = session?.user?.image || "";
+    const userId = session?.user?.id;
+    const userEmail = session?.user?.email;
+
+    const loading = isSessionPending || ((Boolean(userId) || Boolean(userEmail)) && !fetched);
+
+    useEffect(() => {
+        if (isSessionPending || (!userId && !userEmail)) return;
+
+        let cancelled = false;
+        getSeekerApplications(userId, userEmail).then((res) => {
+            if (cancelled) return;
+            if (res.success && res.data) {
+                setStats(res.data.stats);
+                setActivities(res.data.activities);
+            }
+            setFetched(true);
+        });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [isSessionPending, userId, userEmail]);
 
     const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -189,8 +159,35 @@ const SeekerDashboardPage = () => {
         );
     };
 
-    const firstGroup = ACTIVITIES.filter((a) => a.group === 1);
-    const secondGroup = ACTIVITIES.filter((a) => a.group === 2);
+    const statCards = [
+        {
+            title: "Saved Jobs",
+            value: String(stats.savedJobs),
+            icon: Bookmark,
+            iconColor: "text-[#d4d4d8]",
+        },
+        {
+            title: "Applications Submitted",
+            value: String(stats.totalApplied),
+            icon: Send,
+            iconColor: "text-[#d4d4d8]",
+        },
+        {
+            title: "Interviews Scheduled",
+            value: String(stats.interviews),
+            icon: Calendar,
+            iconColor: "text-[#f59e0b]",
+        },
+        {
+            title: "Offers Received",
+            value: String(stats.offers),
+            icon: Award,
+            iconColor: "text-[#22c55e]",
+        },
+    ];
+
+    const firstGroup = activities.slice(0, 3);
+    const secondGroup = activities.slice(3, 6);
 
     return (
         <div className="relative min-h-[calc(100vh-88px)] space-y-6 pb-20">
@@ -241,7 +238,7 @@ const SeekerDashboardPage = () => {
 
             {/* 4 Stat Cards */}
             <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                {STATS.map((stat) => (
+                {statCards.map((stat) => (
                     <div
                         key={stat.title}
                         className="rounded-xl border border-[#1f1f24] bg-[#141418] p-5"
@@ -257,7 +254,7 @@ const SeekerDashboardPage = () => {
                         </div>
 
                         <p className="mt-5 text-[28px] font-semibold leading-none tracking-tight text-[#ededef]">
-                            {stat.value}
+                            {loading ? "—" : stat.value}
                         </p>
                     </div>
                 ))}
@@ -278,17 +275,41 @@ const SeekerDashboardPage = () => {
                     </Link>
                 </div>
 
-                <div className="space-y-2.5">
-                    {firstGroup.map((item) => (
-                        <ActivityRow key={item.id} item={item} />
-                    ))}
-                </div>
+                {loading ? (
+                    <div className="space-y-2.5">
+                        {[1, 2, 3].map((i) => (
+                            <div
+                                key={i}
+                                className="h-[66px] animate-pulse rounded-xl border border-[#1f1f24] bg-[#141418]"
+                            />
+                        ))}
+                    </div>
+                ) : activities.length === 0 ? (
+                    <div className="rounded-xl border border-[#1f1f24] bg-[#141418] px-5 py-10 text-center">
+                        <p className="text-[14px] font-medium text-[#ededef]">
+                            No recent activity yet
+                        </p>
+                        <p className="mt-1 text-[12px] text-[#6e6e78]">
+                            Apply to jobs from Browse Jobs to track your progress here.
+                        </p>
+                    </div>
+                ) : (
+                    <>
+                        <div className="flex flex-col gap-2.5">
+                            {firstGroup.map((item) => (
+                                <ActivityRow key={item.id} item={item} />
+                            ))}
+                        </div>
 
-                <div className="space-y-2.5 pt-2">
-                    {secondGroup.map((item) => (
-                        <ActivityRow key={item.id} item={item} />
-                    ))}
-                </div>
+                        {secondGroup.length > 0 && (
+                            <div className="flex flex-col gap-2.5 pt-2">
+                                {secondGroup.map((item) => (
+                                    <ActivityRow key={item.id} item={item} />
+                                ))}
+                            </div>
+                        )}
+                    </>
+                )}
             </section>
 
             {/* Floating Action Button */}
