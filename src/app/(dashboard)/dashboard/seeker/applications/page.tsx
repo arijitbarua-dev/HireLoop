@@ -1,0 +1,416 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import {
+    Bell,
+    Bot,
+    ChevronLeft,
+    ChevronRight,
+    Cloud,
+    Code2,
+    Compass,
+    Database,
+    Download,
+    Mail,
+    Search,
+    type LucideIcon,
+} from "lucide-react";
+
+import { useSession } from "@/lib/auth-client";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
+type ApplicationStatus =
+    | "Applied"
+    | "Review"
+    | "Shortlisted"
+    | "Rejected"
+    | "Offered";
+
+type ApplicationItem = {
+    id: string;
+    jobTitle: string;
+    jobMeta: string;
+    company: string;
+    appliedAt: string;
+    status: ApplicationStatus;
+    archived?: boolean;
+    icon: LucideIcon;
+    iconBoxClass: string;
+    iconClass: string;
+};
+
+const APPLICATIONS: ApplicationItem[] = [
+    {
+        id: "1",
+        jobTitle: "Senior Frontend Engineer",
+        jobMeta: "Full-time • Remote",
+        company: "Stark Industries",
+        appliedAt: "2 hours ago",
+        status: "Applied",
+        icon: Code2,
+        iconBoxClass: "bg-[#d4d4d8]",
+        iconClass: "text-[#141418]",
+    },
+    {
+        id: "2",
+        jobTitle: "Product Designer",
+        jobMeta: "Contract • Hybrid",
+        company: "Cyberdyne Systems",
+        appliedAt: "1 day ago",
+        status: "Review",
+        icon: Compass,
+        iconBoxClass: "bg-[#222228]",
+        iconClass: "text-[#d4d4d8]",
+    },
+    {
+        id: "3",
+        jobTitle: "Lead Data Scientist",
+        jobMeta: "Full-time • On-site",
+        company: "Wayne Enterprises",
+        appliedAt: "4 days ago",
+        status: "Shortlisted",
+        icon: Database,
+        iconBoxClass: "bg-[#222228]",
+        iconClass: "text-[#d4d4d8]",
+    },
+    {
+        id: "4",
+        jobTitle: "Cloud Architect",
+        jobMeta: "Full-time • Remote",
+        company: "Oscorp Tech",
+        appliedAt: "1 week ago",
+        status: "Rejected",
+        icon: Cloud,
+        iconBoxClass: "bg-[#7f1d1d]",
+        iconClass: "text-[#fca5a5]",
+    },
+    {
+        id: "5",
+        jobTitle: "AI Research Engineer",
+        jobMeta: "Full-time • Hybrid",
+        company: "Hooli Corp",
+        appliedAt: "2 weeks ago",
+        status: "Offered",
+        icon: Bot,
+        iconBoxClass: "bg-[#222228]",
+        iconClass: "text-[#d4d4d8]",
+    },
+    {
+        id: "6",
+        jobTitle: "Backend Platform Engineer",
+        jobMeta: "Full-time • Remote",
+        company: "Acme Cloud",
+        appliedAt: "1 month ago",
+        status: "Rejected",
+        archived: true,
+        icon: Code2,
+        iconBoxClass: "bg-[#222228]",
+        iconClass: "text-[#d4d4d8]",
+    },
+];
+
+const STATUS_STYLES: Record<ApplicationStatus, string> = {
+    Applied: "border-[#2c2c34] bg-[#1f1f25] text-[#9797a2]",
+    Review: "border-[#664611] bg-[#2a1f0d] text-[#f59e0b]",
+    Shortlisted: "border-[#1e3a5f] bg-[#132238] text-[#60a5fa]",
+    Rejected: "border-[#5c1d1d] bg-[#2a1212] text-[#f87171]",
+    Offered: "border-[#194a2e] bg-[#10291b] text-[#22c55e]",
+};
+
+const STATS = [
+    { label: "Total Applied", value: "24", valueClass: "text-[#ededef]" },
+    { label: "Shortlisted", value: "8", valueClass: "text-[#ededef]" },
+    { label: "Interviews", value: "3", valueClass: "text-[#f59e0b]" },
+    { label: "Success Rate", value: "12%", valueClass: "text-[#22c55e]" },
+];
+
+export const ApplicationPage = () => {
+    const { data: session } = useSession();
+    const [searchQuery, setSearchQuery] = useState("");
+    const [tab, setTab] = useState<"active" | "archived">("active");
+    const [currentPage, setCurrentPage] = useState(1);
+
+    const userName = session?.user?.name || "Seeker";
+    const userImage = session?.user?.image || "";
+
+    const filtered = APPLICATIONS.filter((item) => {
+        const matchesTab = tab === "archived" ? Boolean(item.archived) : !item.archived;
+        const q = searchQuery.trim().toLowerCase();
+        const matchesSearch =
+            !q ||
+            item.jobTitle.toLowerCase().includes(q) ||
+            item.company.toLowerCase().includes(q) ||
+            item.status.toLowerCase().includes(q);
+        return matchesTab && matchesSearch;
+    });
+
+    const totalDisplay = tab === "active" && !searchQuery.trim() ? 24 : filtered.length;
+
+    return (
+        <div className="space-y-6 pb-10">
+            {/* Top Search + Notification/Avatar Bar */}
+            <header className="flex flex-wrap items-center justify-between gap-4 border-b border-[#1d1d22] pb-4">
+                <div className="relative w-full max-w-[290px]">
+                    <Search
+                        className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#6e6e78]"
+                        aria-hidden
+                    />
+                    <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => {
+                            setSearchQuery(e.target.value);
+                            setCurrentPage(1);
+                        }}
+                        placeholder="Search applications..."
+                        aria-label="Search applications"
+                        className="h-9 w-full rounded-lg border border-[#242429] bg-[#141418] pl-9 pr-3 text-[13px] text-[#ededef] outline-none transition-colors placeholder:text-[#6e6e78] focus:border-[#3e3e46]"
+                    />
+                </div>
+
+                <div className="flex items-center gap-4">
+                    <button
+                        type="button"
+                        aria-label="Notifications"
+                        className="text-[#9797a2] transition-colors hover:text-[#ededef]"
+                    >
+                        <Bell className="size-[18px]" aria-hidden />
+                    </button>
+
+                    <button
+                        type="button"
+                        aria-label="Messages"
+                        className="text-[#9797a2] transition-colors hover:text-[#ededef]"
+                    >
+                        <Mail className="size-[18px]" aria-hidden />
+                    </button>
+
+                    <Avatar className="size-8 border border-[#27272a]">
+                        <AvatarImage src={userImage} alt={userName} />
+                        <AvatarFallback className="bg-[#25252b] text-[11px] font-medium text-[#ededef]">
+                            {userName.slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                    </Avatar>
+                </div>
+            </header>
+
+            {/* Page Title + Active/Archived + Export PDF */}
+            <section className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-[22px] font-semibold tracking-tight text-[#ededef]">
+                        My Applications
+                    </h1>
+                    <p className="mt-1 text-[12px] text-[#8e8e98]">
+                        Track your job applications and interview progress in real-time.
+                    </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                    <div
+                        role="tablist"
+                        aria-label="Application status filter"
+                        className="inline-flex rounded-lg border border-[#242429] bg-[#141418] p-1"
+                    >
+                        <button
+                            type="button"
+                            role="tab"
+                            aria-selected={tab === "active"}
+                            onClick={() => {
+                                setTab("active");
+                                setCurrentPage(1);
+                            }}
+                            className={`rounded-md px-3.5 py-1 text-[12px] font-medium transition-colors ${
+                                tab === "active"
+                                    ? "bg-[#222228] text-[#ededef]"
+                                    : "text-[#8e8e98] hover:text-[#ededef]"
+                            }`}
+                        >
+                            Active
+                        </button>
+                        <button
+                            type="button"
+                            role="tab"
+                            aria-selected={tab === "archived"}
+                            onClick={() => {
+                                setTab("archived");
+                                setCurrentPage(1);
+                            }}
+                            className={`rounded-md px-3.5 py-1 text-[12px] font-medium transition-colors ${
+                                tab === "archived"
+                                    ? "bg-[#222228] text-[#ededef]"
+                                    : "text-[#8e8e98] hover:text-[#ededef]"
+                            }`}
+                        >
+                            Archived
+                        </button>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={() => window.print()}
+                        className="inline-flex h-9 items-center gap-2 rounded-lg bg-white px-3.5 text-[12px] font-medium text-[#09090b] transition-colors hover:bg-[#e4e4e7]"
+                    >
+                        <Download className="size-3.5" aria-hidden />
+                        Export PDF
+                    </button>
+                </div>
+            </section>
+
+            {/* 4 Stat Cards */}
+            <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                {STATS.map((stat) => (
+                    <div
+                        key={stat.label}
+                        className="rounded-xl border border-[#1f1f24] bg-[#141418] p-5"
+                    >
+                        <p className="text-[12px] font-medium text-[#8e8e98]">
+                            {stat.label}
+                        </p>
+                        <p
+                            className={`mt-2.5 text-[28px] font-semibold leading-none tracking-tight ${stat.valueClass}`}
+                        >
+                            {stat.value}
+                        </p>
+                    </div>
+                ))}
+            </section>
+
+            {/* Applications Table */}
+            <section className="overflow-hidden rounded-xl border border-[#1f1f24] bg-[#141418]">
+                <div className="overflow-x-auto">
+                    <table className="w-full min-w-[680px] text-left">
+                        <thead>
+                            <tr className="border-b border-[#1f1f24] text-[11px] font-medium text-[#6e6e78]">
+                                <th className="px-5 py-3.5 font-medium">Job Title</th>
+                                <th className="px-5 py-3.5 font-medium">Company</th>
+                                <th className="px-5 py-3.5 font-medium">Applied</th>
+                                <th className="px-5 py-3.5 font-medium">Status</th>
+                                <th className="px-5 py-3.5 text-right font-medium">
+                                    Action
+                                </th>
+                            </tr>
+                        </thead>
+
+                        <tbody className="divide-y divide-[#1f1f24]">
+                            {filtered.length === 0 ? (
+                                <tr>
+                                    <td
+                                        colSpan={5}
+                                        className="px-5 py-10 text-center text-[13px] text-[#6e6e78]"
+                                    >
+                                        No applications found.
+                                    </td>
+                                </tr>
+                            ) : (
+                                filtered.map((app) => {
+                                    const Icon = app.icon;
+                                    return (
+                                        <tr
+                                            key={app.id}
+                                            className="transition-colors hover:bg-[#18181d]"
+                                        >
+                                            <td className="px-5 py-3.5">
+                                                <div className="flex items-center gap-3.5">
+                                                    <div
+                                                        className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${app.iconBoxClass}`}
+                                                    >
+                                                        <Icon
+                                                            className={`size-4 ${app.iconClass}`}
+                                                            aria-hidden
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[13px] font-medium text-[#ededef]">
+                                                            {app.jobTitle}
+                                                        </p>
+                                                        <p className="mt-0.5 text-[11px] text-[#6e6e78]">
+                                                            {app.jobMeta}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </td>
+
+                                            <td className="px-5 py-3.5 text-[13px] text-[#c9c9d1]">
+                                                {app.company}
+                                            </td>
+
+                                            <td className="px-5 py-3.5 text-[12px] text-[#8e8e98]">
+                                                {app.appliedAt}
+                                            </td>
+
+                                            <td className="px-5 py-3.5">
+                                                <span
+                                                    className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${STATUS_STYLES[app.status]}`}
+                                                >
+                                                    {app.status}
+                                                </span>
+                                            </td>
+
+                                            <td className="px-5 py-3.5 text-right">
+                                                <Link
+                                                    href="/browse-jobs"
+                                                    className="text-[12px] font-medium text-[#c9c9d1] transition-colors hover:text-white"
+                                                >
+                                                    Details
+                                                </Link>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* Pagination Footer */}
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#1f1f24] px-5 py-3.5">
+                    <p className="text-[12px] text-[#6e6e78]">
+                        Showing {filtered.length === 0 ? 0 : 1}-{filtered.length} of{" "}
+                        {totalDisplay} applications
+                    </p>
+
+                    <nav aria-label="Pagination" className="flex items-center gap-1.5">
+                        <button
+                            type="button"
+                            aria-label="Previous page"
+                            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                            disabled={currentPage <= 1}
+                            className="flex size-7 items-center justify-center rounded-md border border-[#242429] bg-[#1a1a1f] text-[#8e8e98] transition-colors hover:text-white disabled:opacity-40"
+                        >
+                            <ChevronLeft className="size-3.5" aria-hidden />
+                        </button>
+
+                        {[1, 2, 3].map((page) => (
+                            <button
+                                key={page}
+                                type="button"
+                                aria-current={currentPage === page ? "page" : undefined}
+                                onClick={() => setCurrentPage(page)}
+                                className={`flex size-7 items-center justify-center rounded-md text-[12px] font-medium transition-colors ${
+                                    currentPage === page
+                                        ? "bg-white font-semibold text-[#09090b]"
+                                        : "border border-[#242429] bg-[#1a1a1f] text-[#8e8e98] hover:text-white"
+                                }`}
+                            >
+                                {page}
+                            </button>
+                        ))}
+
+                        <button
+                            type="button"
+                            aria-label="Next page"
+                            onClick={() => setCurrentPage((p) => Math.min(3, p + 1))}
+                            disabled={currentPage >= 3}
+                            className="flex size-7 items-center justify-center rounded-md border border-[#242429] bg-[#1a1a1f] text-[#8e8e98] transition-colors hover:text-white disabled:opacity-40"
+                        >
+                            <ChevronRight className="size-3.5" aria-hidden />
+                        </button>
+                    </nav>
+                </div>
+            </section>
+        </div>
+    );
+};
+
+export default ApplicationPage;
