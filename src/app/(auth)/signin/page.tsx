@@ -100,10 +100,15 @@ function SigninContent({
             }
 
             // Successfully signed in — send the user to the dashboard
-            // that matches their role (recruiters go to the recruiter
-            // dashboard), falling back to the home page for unknown roles.
-            const role = data?.user?.role;
-            router.push((role && dashboardPathByRole[role]) || "/");
+            // that matches their role (seekers -> /dashboard/seeker,
+            // recruiters -> /dashboard/recruiter), falling back to session lookup.
+            let role = (data?.user as { role?: string } | undefined)?.role;
+            if (!role) {
+                const sessionRes = await authClient.getSession();
+                role = (sessionRes.data?.user as { role?: string } | undefined)?.role;
+            }
+            router.push((role && dashboardPathByRole[role]) || "/dashboard/seeker");
+            router.refresh();
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : "An unexpected error occurred.";
             setError(message);
