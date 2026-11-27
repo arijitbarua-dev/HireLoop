@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
     BadgeCheck,
     Banknote,
@@ -13,6 +14,7 @@ import {
     Code2,
     Laptop,
     Layers,
+    Loader2,
     MapPin,
     Megaphone,
     Palette,
@@ -23,6 +25,8 @@ import {
     type LucideIcon,
 } from "lucide-react";
 
+import { useSession } from "@/lib/auth-client";
+import { applyToJob, checkJobApplication } from "@/lib/actions/jobs";
 import type { JobDoc } from "@/lib/api/jobs";
 
 const iconByCategory: Record<string, LucideIcon> = {
@@ -122,8 +126,58 @@ const BENEFITS = [
 ];
 
 export default function JobDetailsView({ job }: { job: JobDoc }) {
+    const router = useRouter();
+    const { data: session, isPending: isSessionPending } = useSession();
+
     const [saved, setSaved] = useState(false);
     const [applied, setApplied] = useState(false);
+    const [applying, setApplying] = useState(false);
+    const [applyError, setApplyError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!session?.user) return;
+        let cancelled = false;
+
+        checkJobApplication(job._id, session.user.id, session.user.email).then(
+            (res) => {
+                if (!cancelled && res.applied) {
+                    setApplied(true);
+                }
+            }
+        );
+
+        return () => {
+            cancelled = true;
+        };
+    }, [job._id, session?.user]);
+
+    const handleApply = async () => {
+        if (isSessionPending || applying || applied) return;
+
+        if (!session?.user) {
+            router.push("/signin");
+            return;
+        }
+
+        setApplying(true);
+        setApplyError(null);
+
+        const res = await applyToJob({
+            jobId: job._id,
+            userId: session.user.id,
+            userEmail: session.user.email,
+            userName: session.user.name,
+        });
+
+        setApplying(false);
+
+        if (res.success || res.status === 409) {
+            setApplied(true);
+            return;
+        }
+
+        setApplyError(res.error ?? "Failed to submit application");
+    };
 
     const CategoryIcon = iconByCategory[job.jobCategory ?? ""] ?? ShieldCheck;
     const salary = formatSalary(job.minSalary, job.maxSalary, job.frequency);
@@ -165,44 +219,57 @@ export default function JobDetailsView({ job }: { job: JobDoc }) {
                     </div>
                 </div>
 
-                <div className="flex shrink-0 items-center gap-2.5">
-                    <button
-                        type="button"
-                        aria-label={saved ? "Remove saved job" : "Save job"}
-                        aria-pressed={saved}
-                        onClick={() => setSaved((prev) => !prev)}
-                        className={`flex size-9 items-center justify-center rounded-[8px] border transition-colors ${
-                            saved
-                                ? "border-[#3a2f1e] bg-[#2a2217] text-[#fcba45]"
-                                : "border-[#242429] bg-[#1a1a1f] text-[#9797a2] hover:border-[#3a3a41] hover:text-[#ededef]"
-                        }`}
-                    >
-                        <Bookmark
-                            className="size-4"
-                            fill={saved ? "currentColor" : "none"}
-                            aria-hidden
-                        />
-                    </button>
+                <div className="flex flex-col items-start gap-2 sm:items-end">
+                    <div className="flex shrink-0 items-center gap-2.5">
+                        <button
+                            type="button"
+                            aria-label={saved ? "Remove saved job" : "Save job"}
+                            aria-pressed={saved}
+                            onClick={() => setSaved((prev) => !prev)}
+                            className={`flex size-9 items-center justify-center rounded-[8px] border transition-colors ${
+                                saved
+                                    ? "border-[#3a2f1e] bg-[#2a2217] text-[#fcba45]"
+                                    : "border-[#242429] bg-[#1a1a1f] text-[#9797a2] hover:border-[#3a3a41] hover:text-[#ededef]"
+                            }`}
+                        >
+                            <Bookmark
+                                className="size-4"
+                                fill={saved ? "currentColor" : "none"}
+                                aria-hidden
+                            />
+                        </button>
 
-                    <button
-                        type="button"
-                        onClick={() => setApplied(true)}
-                        disabled={applied}
-                        className={`inline-flex h-9 items-center justify-center gap-1.5 rounded-[8px] px-4 text-[13px] font-medium transition-colors ${
-                            applied
-                                ? "border border-[#1f3b2c] bg-[#15261f] text-[#22c55e]"
-                                : "bg-white text-[#111114] hover:bg-[#e9e9ea]"
-                        }`}
-                    >
-                        {applied ? (
-                            <>
-                                <Check className="size-3.5" aria-hidden />
-                                Applied
-                            </>
-                        ) : (
-                            "Apply Now"
-                        )}
-                    </button>
+                        <button
+                            type="button"
+                            onClick={handleApply}
+                            disabled={applied || applying || isSessionPending}
+                            className={`inline-flex h-9 items-center justify-center gap-1.5 rounded-[8px] px-4 text-[13px] font-medium transition-colors disabled:cursor-not-allowed ${
+                                applied
+                                    ? "border border-[#1f3b2c] bg-[#15261f] text-[#22c55e]"
+                                    : "bg-white text-[#111114] hover:bg-[#e9e9ea] disabled:opacity-60"
+                            }`}
+                        >
+                            {applying ? (
+                                <>
+                                    <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                                    Applying...
+                                </>
+                            ) : applied ? (
+                                <>
+                                    <Check className="size-3.5" aria-hidden />
+                                    Applied
+                                </>
+                            ) : (
+                                "Apply Now"
+                            )}
+                        </button>
+                    </div>
+
+                    {applyError && (
+                        <p className="text-[12px] text-red-400" role="alert">
+                            {applyError}
+                        </p>
+                    )}
                 </div>
             </section>
 
